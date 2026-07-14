@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { MuscleGroup, WorkoutSet, WorkoutSession, MuscleProgress } from '../types/gym';
 import {
@@ -9,6 +9,7 @@ import {
   INITIAL_MUSCLE_PROGRESS,
   HISTORICAL_SESSIONS,
 } from '../data/mockData';
+import { calculateSetXp, addXpToMuscle, getXpRequiredForNextLevel } from '../utils/xpCalculator';
 
 // Safe muscle icons/indicators
 const MUSCLE_EMOJIS: Record<MuscleGroup, string> = {
@@ -69,7 +70,13 @@ const MUSCLE_COLORS: Record<MuscleGroup, { bg: string; text: string; border: str
 export default function Dashboard() {
   // State for user details, progress, and history
   const [user, setUser] = useState(INITIAL_USER);
-  const [muscleProgresses, setMuscleProgresses] = useState<MuscleProgress[]>(INITIAL_MUSCLE_PROGRESS);
+  const [muscleProgresses, setMuscleProgresses] = useState<MuscleProgress[]>(() => {
+    // Standardize initial level curves on startup using our utility
+    return INITIAL_MUSCLE_PROGRESS.map((p) => ({
+      ...p,
+      xpToNextLevel: getXpRequiredForNextLevel(p.level),
+    }));
+  });
   const [sessions, setSessions] = useState<WorkoutSession[]>(HISTORICAL_SESSIONS);
 
   // Modal / Session states
@@ -77,14 +84,75 @@ export default function Dashboard() {
   const [sessionName, setSessionName] = useState('Entrenamiento Rápido');
   const [activeSets, setActiveSets] = useState<WorkoutSet[]>([]);
 
+  // UX Improvement 1: Store the last performed set data per exercise ID
+  const [lastSetPerExercise, setLastSetPerExercise] = useState<Record<string, { weight: number; reps: number; rpe: number }>>({
+    'ex-1': { weight: 65, reps: 8, rpe: 9 }, // Initialize with historical bench press
+    'ex-10': { weight: 25, reps: 12, rpe: 8 },
+  });
+
   // Current inputs for adding a set
   const [selectedExerciseId, setSelectedExerciseId] = useState(INITIAL_EXERCISES[0].id);
   const [inputWeight, setInputWeight] = useState<number>(60);
   const [inputReps, setInputReps] = useState<number>(10);
   const [inputRpe, setInputRpe] = useState<number>(8);
 
+  // UX Improvement 3: Auto rest-timer states
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(90); // default 90 seconds rest
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   // State for active tabs
   const [activeTab, setActiveTab] = useState<'progress' | 'history' | 'exercises'>('progress');
+
+  // Synchronize input loading on exercise change directly without triggering useEffect react-hooks warnings
+  const handleExerciseChange = (exerciseId: string) => {
+    setSelectedExerciseId(exerciseId);
+    if (lastSetPerExercise[exerciseId]) {
+      const last = lastSetPerExercise[exerciseId];
+      setInputWeight(last.weight);
+      setInputReps(last.reps);
+      setInputRpe(last.rpe);
+    } else {
+      setInputWeight(60);
+      setInputReps(10);
+      setInputRpe(8);
+    }
+  };
+
+  // Handle automatic countdown timer ticking using standard effect and avoiding synchronous cascading warnings
+  useEffect(() => {
+    if (isTimerActive && !isTimerPaused) {
+      if (timeLeft > 0) {
+        timerRef.current = setTimeout(() => {
+          setTimeLeft((prev) => prev - 1);
+        }, 1000);
+      } else {
+        // Handle expiration inside a timeout to run completely outside the render cycle
+        setTimeout(() => {
+          setIsTimerActive(false);
+          alert('⏰ ¡Tiempo de descanso completado! Listo para la siguiente serie.');
+        }, 10);
+      }
+    }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isTimerActive, isTimerPaused, timeLeft]);
+
+  // Incrementor helpers with double borders and physical feedback click responses
+  const changeWeight = (amount: number) => {
+    setInputWeight((prev) => Math.max(0, prev + amount));
+  };
+
+  const changeReps = (amount: number) => {
+    setInputReps((prev) => Math.max(0, prev + amount));
+  };
+
+  const changeRpe = (amount: number) => {
+    setInputRpe((prev) => Math.min(10, Math.max(1, prev + amount)));
+  };
 
   // Handle adding a set in current active session
   const handleAddSet = () => {
@@ -99,7 +167,22 @@ export default function Dashboard() {
       timestamp: new Date().toISOString(),
     };
 
+    // Save as last set for this exercise to load next time
+    setLastSetPerExercise((prev) => ({
+      ...prev,
+      [selectedExerciseId]: {
+        weight: Number(inputWeight),
+        reps: Number(inputReps),
+        rpe: Number(inputRpe),
+      },
+    }));
+
     setActiveSets([...activeSets, newSet]);
+
+    // UX Improvement 3: Activate automatic floating overlay rest timer!
+    setTimeLeft(90);
+    setIsTimerActive(true);
+    setIsTimerPaused(false);
   };
 
   // Remove a set during the current session
@@ -107,13 +190,14 @@ export default function Dashboard() {
     setActiveSets(activeSets.filter((_, i) => i !== index));
   };
 
-  // Complete session & trigger XP progression math
+  // Complete session & trigger dynamic tonnage-based XP progression mathematics
   const handleCompleteSession = () => {
     if (activeSets.length === 0) {
       alert('¡Agrega al menos una serie para poder guardar el entrenamiento!');
       return;
     }
 
+    // Accumulate actual math XP per muscle group
     const xpUpdates: Record<MuscleGroup, number> = {
       Chest: 0,
       Back: 0,
@@ -126,38 +210,25 @@ export default function Dashboard() {
     activeSets.forEach((set) => {
       const exercise = INITIAL_EXERCISES.find((e) => e.id === set.exerciseId);
       if (exercise) {
-        xpUpdates[exercise.primaryMuscleGroup] += 100;
+        // Calculate exact Tonnage * RPE Factor XP
+        const primaryXpGained = calculateSetXp(set, true);
+        const secondaryXpGained = calculateSetXp(set, false);
+
+        xpUpdates[exercise.primaryMuscleGroup] += primaryXpGained;
         exercise.secondaryMuscleGroups?.forEach((sec) => {
-          xpUpdates[sec] += 30;
+          xpUpdates[sec] += secondaryXpGained;
         });
       }
     });
 
     const totalGainedXp = Object.values(xpUpdates).reduce((sum, val) => sum + val, 0);
 
+    // Apply progressive scaling level thresholds and dynamic ranks
     const updatedProgress = muscleProgresses.map((progress) => {
       const addedXp = xpUpdates[progress.muscleGroup];
       if (addedXp === 0) return progress;
 
-      let newXp = progress.currentXp + addedXp;
-      let newLevel = progress.level;
-      const xpNeeded = progress.xpToNextLevel;
-
-      while (newXp >= xpNeeded) {
-        newXp -= xpNeeded;
-        newLevel += 1;
-      }
-
-      let rankName = progress.rankName;
-      if (newLevel >= 5) rankName = `${progress.muscleGroup === 'Chest' ? 'Titán del Pectoral' : 'Titán de ' + progress.muscleGroup}`;
-      else if (newLevel >= 3) rankName = `${progress.muscleGroup === 'Chest' ? 'Pectoral de Acero' : 'Fuerza de ' + progress.muscleGroup}`;
-
-      return {
-        ...progress,
-        level: newLevel,
-        currentXp: newXp,
-        rankName,
-      };
+      return addXpToMuscle(progress, addedXp);
     });
 
     const newTotalXp = user.totalXp + totalGainedXp;
@@ -190,12 +261,13 @@ export default function Dashboard() {
     setActiveSets([]);
     setSessionName('Entrenamiento Rápido');
     setIsTrainingOpen(false);
+    setIsTimerActive(false); // Turn off rest timer when workout is closed
 
-    alert(`¡Entrenamiento registrado con éxito! Ganaste +${totalGainedXp} XP de rango.`);
+    alert(`¡Entrenamiento registrado con éxito!\nFórmula Tonelaje + RPE calculó un total de +${totalGainedXp} XP ganados.`);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-28">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-32">
       {/* HEADER SECTION (Claymorphic Navigation style) */}
       <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/60 px-4 py-3.5 shadow-clay-sm">
         <div className="max-w-md mx-auto flex items-center justify-between">
@@ -231,6 +303,34 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* FLOATING AUTOMATIC REST TIMER OVERLAY */}
+      {isTimerActive && (
+        <div className="fixed bottom-24 right-4 z-50 animate-bounce">
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-500/30 p-3.5 rounded-2xl shadow-clay-md flex items-center space-x-3 text-xs w-56">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-mono font-bold border border-emerald-500/25">
+              {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            </div>
+            <div className="flex-1">
+              <span className="font-extrabold text-slate-300 block">Descanso Activo</span>
+              <div className="flex space-x-2 mt-1">
+                <button
+                  onClick={() => setIsTimerPaused(!isTimerPaused)}
+                  className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded font-bold transition-all"
+                >
+                  {isTimerPaused ? 'Reanudar' : 'Pausar'}
+                </button>
+                <button
+                  onClick={() => setIsTimerActive(false)}
+                  className="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-bold border border-red-500/10 transition-all"
+                >
+                  Saltar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MAIN CONTAINER */}
       <main className="max-w-md mx-auto px-4 pt-5 space-y-6">
@@ -275,7 +375,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-extrabold tracking-wider text-slate-500 uppercase">Progresión 3D de Rangos</h3>
               <span className="text-[11px] font-bold text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/10 shadow-clay-sm">
-                ¡Registra entrenamientos!
+                ¡Matemáticas de Tonelaje Activas!
               </span>
             </div>
 
@@ -460,7 +560,7 @@ export default function Dashboard() {
             <div className="p-5 space-y-5 flex-1">
 
               {/* Form to log a new set (Sunken block) */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-900 shadow-sunken space-y-4">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-900 shadow-sunken space-y-5">
                 <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase block">Agregar Serie</span>
 
                 {/* Select Exercise (Tactile drop-down) */}
@@ -468,7 +568,7 @@ export default function Dashboard() {
                   <label className="text-[11px] text-slate-500 font-bold px-1">Ejercicio</label>
                   <select
                     value={selectedExerciseId}
-                    onChange={(e) => setSelectedExerciseId(e.target.value)}
+                    onChange={(e) => handleExerciseChange(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-200 font-bold shadow-clay-sm focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer"
                   >
                     {INITIAL_EXERCISES.map((ex) => (
@@ -479,44 +579,113 @@ export default function Dashboard() {
                   </select>
                 </div>
 
-                {/* Metrics Form Grid (Sunken inputs) */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-500 font-bold px-1">Peso (kg)</label>
-                    <input
-                      type="number"
-                      value={inputWeight}
-                      onChange={(e) => setInputWeight(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-800/80 rounded-xl p-2.5 text-center text-xs text-slate-200 font-bold shadow-sunken focus:ring-2 focus:ring-emerald-500/40"
-                    />
+                {/* Metrics Form with Increment/Decrement Buttons */}
+                <div className="space-y-4">
+                  {/* Weight Control Row */}
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-900 shadow-sunken">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] text-slate-400 font-bold px-1">Peso (kg)</span>
+                      <span className="text-[11px] text-slate-500 font-mono font-bold">Activo: {inputWeight} kg</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        onClick={() => changeWeight(-5)}
+                        className="w-10 h-9 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                      >
+                        -5
+                      </button>
+                      <button
+                        onClick={() => changeWeight(-2.5)}
+                        className="w-11 h-9 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                      >
+                        -2.5
+                      </button>
+
+                      <input
+                        type="number"
+                        value={inputWeight}
+                        onChange={(e) => setInputWeight(Number(e.target.value))}
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center text-xs text-slate-200 font-bold shadow-sunken"
+                      />
+
+                      <button
+                        onClick={() => changeWeight(2.5)}
+                        className="w-11 h-9 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                      >
+                        +2.5
+                      </button>
+                      <button
+                        onClick={() => changeWeight(5)}
+                        className="w-10 h-9 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                      >
+                        +5
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-500 font-bold px-1">Reps</label>
-                    <input
-                      type="number"
-                      value={inputReps}
-                      onChange={(e) => setInputReps(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-800/80 rounded-xl p-2.5 text-center text-xs text-slate-200 font-bold shadow-sunken focus:ring-2 focus:ring-emerald-500/40"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-slate-500 font-bold px-1">RPE (1-10)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={inputRpe}
-                      onChange={(e) => setInputRpe(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-800/80 rounded-xl p-2.5 text-center text-xs text-slate-200 font-bold shadow-sunken focus:ring-2 focus:ring-emerald-500/40"
-                    />
+
+                  {/* Reps and RPE side-by-side controls */}
+                  <div className="grid grid-cols-2 gap-3">
+
+                    {/* Reps Control */}
+                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-900 shadow-sunken">
+                      <span className="text-[11px] text-slate-400 font-bold block mb-1 px-1">Reps</span>
+                      <div className="flex items-center justify-between space-x-1">
+                        <button
+                          onClick={() => changeReps(-1)}
+                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                        >
+                          -1
+                        </button>
+                        <input
+                          type="number"
+                          value={inputReps}
+                          onChange={(e) => setInputReps(Number(e.target.value))}
+                          className="w-12 bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center text-xs text-slate-200 font-bold shadow-sunken"
+                        />
+                        <button
+                          onClick={() => changeReps(1)}
+                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                        >
+                          +1
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* RPE Control */}
+                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-900 shadow-sunken">
+                      <span className="text-[11px] text-slate-400 font-bold block mb-1 px-1">RPE (1-10)</span>
+                      <div className="flex items-center justify-between space-x-1">
+                        <button
+                          onClick={() => changeRpe(-1)}
+                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                        >
+                          -1
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={inputRpe}
+                          onChange={(e) => setInputRpe(Number(e.target.value))}
+                          className="w-12 bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center text-xs text-slate-200 font-bold shadow-sunken"
+                        />
+                        <button
+                          onClick={() => changeRpe(1)}
+                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                        >
+                          +1
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
                 <button
                   onClick={handleAddSet}
-                  className="w-full bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-emerald-400 font-extrabold border border-slate-700/50 py-3 rounded-xl text-xs shadow-clay-sm hover:scale-[1.01] active:scale-95 active:shadow-sunken transition-all duration-150"
+                  className="w-full bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-emerald-400 font-extrabold border border-slate-700/50 py-3 rounded-xl text-xs shadow-clay-sm hover:scale-[1.01] active:scale-95 active:shadow-sunken transition-all duration-150 cursor-pointer"
                 >
-                  + Agregar Serie al Listado
+                  + Agregar Serie (Iniciar Descanso)
                 </button>
               </div>
 
@@ -536,7 +705,7 @@ export default function Dashboard() {
                     No has agregado ninguna serie todavía.
                   </p>
                 ) : (
-                  <div className="space-y-2 max-h-[22vh] overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-[20vh] overflow-y-auto pr-1">
                     {activeSets.map((set, idx) => {
                       const exercise = INITIAL_EXERCISES.find((e) => e.id === set.exerciseId);
                       return (
@@ -557,7 +726,7 @@ export default function Dashboard() {
                             </span>
                             <button
                               onClick={() => handleRemoveSet(idx)}
-                              className="text-red-400 hover:text-red-300 w-6 h-6 rounded-full bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center font-bold text-xs"
+                              className="text-red-400 hover:text-red-300 w-6 h-6 rounded-full bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
                               ✕
                             </button>
@@ -575,13 +744,13 @@ export default function Dashboard() {
             <div className="p-5 border-t border-slate-950 bg-slate-900/95 sticky bottom-0 z-10 flex gap-3">
               <button
                 onClick={() => setIsTrainingOpen(false)}
-                className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-300 py-3.5 rounded-2xl text-xs font-bold shadow-clay-sm active:scale-95 active:shadow-sunken transition-all border border-slate-700/20"
+                className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-300 py-3.5 rounded-2xl text-xs font-bold shadow-clay-sm active:scale-95 active:shadow-sunken transition-all border border-slate-700/20 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCompleteSession}
-                className="flex-[2] bg-gradient-to-b from-emerald-400 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 py-3.5 rounded-2xl text-xs font-black tracking-wide shadow-clay-emerald border border-emerald-300/10 active:scale-95 active:shadow-sunken transition-all"
+                className="flex-[2] bg-gradient-to-b from-emerald-400 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 py-3.5 rounded-2xl text-xs font-black tracking-wide shadow-clay-emerald border border-emerald-300/10 active:scale-95 active:shadow-sunken transition-all cursor-pointer"
               >
                 💾 GUARDAR & GANAR XP
               </button>
