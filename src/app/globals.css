@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090d16;
-  --foreground: #f1f5f9;
+  --background: #070a13;
+  --foreground: #f8fafc;
 }
 
 @theme {
@@ -11,20 +11,41 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Claymorphism & Soft Neumorphism shadows and gradients */
-  --shadow-clay-sm: 4px 4px 10px rgba(0, 0, 0, 0.4), inset 2px 2px 4px rgba(255, 255, 255, 0.15), inset -3px -3px 6px rgba(0, 0, 0, 0.3);
-  --shadow-clay-md: 8px 8px 18px rgba(0, 0, 0, 0.5), inset 3px 3px 6px rgba(255, 255, 255, 0.15), inset -5px -5px 10px rgba(0, 0, 0, 0.4);
-  --shadow-clay-lg: 12px 12px 28px rgba(0, 0, 0, 0.6), inset 4px 4px 10px rgba(255, 255, 255, 0.15), inset -8px -8px 16px rgba(0, 0, 0, 0.45);
+  /* Enhanced 3D Claymorphism & High-Contrast Volumetric Shadows */
+  /* These utilize triple layer shading: deep dark drop shadow, bright top-left light source reflection, and soft bottom-right dark sink */
+  --shadow-clay-sm: 4px 4px 10px rgba(0, 0, 0, 0.65), inset 2px 2px 4px rgba(255, 255, 255, 0.15), inset -3px -3px 6px rgba(0, 0, 0, 0.5);
+  --shadow-clay-md: 10px 10px 22px rgba(0, 0, 0, 0.75), inset 3px 3px 7px rgba(255, 255, 255, 0.15), inset -6px -6px 12px rgba(0, 0, 0, 0.5);
+  --shadow-clay-lg: 16px 16px 36px rgba(0, 0, 0, 0.85), inset 5px 5px 12px rgba(255, 255, 255, 0.18), inset -8px -8px 18px rgba(0, 0, 0, 0.6);
 
-  /* Colored active state clay shadows */
-  --shadow-clay-emerald: 8px 8px 18px rgba(16, 185, 129, 0.15), inset 3px 3px 6px rgba(255, 255, 255, 0.3), inset -5px -5px 10px rgba(0, 0, 0, 0.4);
+  /* Bright glossy highlights and intense colored theme shadow overlays */
+  --shadow-clay-emerald: 10px 10px 24px rgba(16, 185, 129, 0.18), inset 4px 4px 8px rgba(255, 255, 255, 0.35), inset -6px -6px 12px rgba(0, 0, 0, 0.55);
+  --shadow-clay-badge: 5px 5px 12px rgba(0, 0, 0, 0.55), inset 2px 2px 4px rgba(255, 255, 255, 0.3), inset -3px -3px 6px rgba(0, 0, 0, 0.45);
 
-  /* Sunken/Inset fields look */
-  --shadow-sunken: inset 2px 2px 5px rgba(0, 0, 0, 0.6), inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+  /* Sunken inset inputs (gives deep cut-out or physical sunken layout) */
+  --shadow-sunken: inset 4px 4px 8px rgba(0, 0, 0, 0.8), inset -2px -2px 4px rgba(255, 255, 255, 0.05);
+  --shadow-sunken-active: inset 6px 6px 12px rgba(0, 0, 0, 0.95), inset -1px -1px 3px rgba(255, 255, 255, 0.03);
+
+  /* Acrylic neon rings */
+  --shadow-neon-glow: 0 0 15px rgba(16, 185, 129, 0.25), inset 0 0 8px rgba(16, 185, 129, 0.15);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Beautiful custom animations for gamification visual feedback */
+@keyframes pulseGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)) drop-shadow(0 0 10px rgba(16, 185, 129, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.7)) drop-shadow(0 0 18px rgba(16, 185, 129, 0.4));
+  }
+}
+
+.pulse-glow-emerald {
+  animation: pulseGlow 3s infinite ease-in-out;
 }

@@ -11,67 +11,152 @@ import {
 } from '../data/mockData';
 import { calculateSetXp, addXpToMuscle, getXpRequiredForNextLevel } from '../utils/xpCalculator';
 
-// Safe muscle icons/indicators
-const MUSCLE_EMOJIS: Record<MuscleGroup, string> = {
-  Chest: '💪',
-  Back: '📐',
-  Legs: '🦵',
-  Shoulders: '🛡️',
-  Arms: '🦾',
-  Core: '🧱',
-};
-
-// Colors optimized for smooth matte claymorphism gradients and rounded gloss styling
-const MUSCLE_COLORS: Record<MuscleGroup, { bg: string; text: string; border: string; bar: string; glow: string }> = {
+// Color definitions for Hito 3 premium claymorphism visuals (vibrant gradients, borders, and glowing rings)
+const MUSCLE_THEMES: Record<MuscleGroup, {
+  bg: string;
+  text: string;
+  border: string;
+  barFrom: string;
+  barTo: string;
+  iconBg: string;
+  iconColor: string;
+  accentGlow: string;
+  accentText: string;
+}> = {
   Chest: {
-    bg: 'from-red-950/40 to-red-900/10',
-    text: 'text-red-400',
-    border: 'border-red-500/20',
-    bar: 'bg-gradient-to-r from-red-500 to-rose-400',
-    glow: 'shadow-red-500/10'
+    bg: 'from-rose-950/40 via-slate-900/90 to-slate-950/95',
+    text: 'text-rose-400',
+    border: 'border-rose-500/20 hover:border-rose-500/40',
+    barFrom: 'from-rose-500',
+    barTo: 'to-red-400',
+    iconBg: 'bg-rose-500/10 border-rose-500/30',
+    iconColor: '#f43f5e',
+    accentGlow: 'shadow-rose-500/20',
+    accentText: 'text-rose-300'
   },
   Back: {
-    bg: 'from-emerald-950/40 to-emerald-900/10',
+    bg: 'from-emerald-950/40 via-slate-900/90 to-slate-950/95',
     text: 'text-emerald-400',
-    border: 'border-emerald-500/20',
-    bar: 'bg-gradient-to-r from-emerald-500 to-teal-400',
-    glow: 'shadow-emerald-500/10'
+    border: 'border-emerald-500/20 hover:border-emerald-500/40',
+    barFrom: 'from-emerald-500',
+    barTo: 'to-teal-400',
+    iconBg: 'bg-emerald-500/10 border-emerald-500/30',
+    iconColor: '#10b981',
+    accentGlow: 'shadow-emerald-500/20',
+    accentText: 'text-emerald-300'
   },
   Legs: {
-    bg: 'from-amber-950/40 to-amber-900/10',
+    bg: 'from-amber-950/40 via-slate-900/90 to-slate-950/95',
     text: 'text-amber-400',
-    border: 'border-amber-500/20',
-    bar: 'bg-gradient-to-r from-amber-500 to-orange-400',
-    glow: 'shadow-amber-500/10'
+    border: 'border-amber-500/20 hover:border-amber-500/40',
+    barFrom: 'from-amber-500',
+    barTo: 'to-orange-400',
+    iconBg: 'bg-amber-500/10 border-amber-500/30',
+    iconColor: '#f59e0b',
+    accentGlow: 'shadow-amber-500/20',
+    accentText: 'text-amber-300'
   },
   Shoulders: {
-    bg: 'from-indigo-950/40 to-indigo-900/10',
+    bg: 'from-indigo-950/40 via-slate-900/90 to-slate-950/95',
     text: 'text-indigo-400',
-    border: 'border-indigo-500/20',
-    bar: 'bg-gradient-to-r from-indigo-500 to-violet-400',
-    glow: 'shadow-indigo-500/10'
+    border: 'border-indigo-500/20 hover:border-indigo-500/40',
+    barFrom: 'from-indigo-500',
+    barTo: 'to-violet-400',
+    iconBg: 'bg-indigo-500/10 border-indigo-500/30',
+    iconColor: '#6366f1',
+    accentGlow: 'shadow-indigo-500/20',
+    accentText: 'text-indigo-300'
   },
   Arms: {
-    bg: 'from-purple-950/40 to-purple-900/10',
-    text: 'text-purple-400',
-    border: 'border-purple-500/20',
-    bar: 'bg-gradient-to-r from-purple-500 to-fuchsia-400',
-    glow: 'shadow-purple-500/10'
+    bg: 'from-fuchsia-950/40 via-slate-900/90 to-slate-950/95',
+    text: 'text-fuchsia-400',
+    border: 'border-fuchsia-500/20 hover:border-fuchsia-500/40',
+    barFrom: 'from-fuchsia-500',
+    barTo: 'to-purple-400',
+    iconBg: 'bg-fuchsia-500/10 border-fuchsia-500/30',
+    iconColor: '#d946ef',
+    accentGlow: 'shadow-fuchsia-500/20',
+    accentText: 'text-fuchsia-300'
   },
   Core: {
-    bg: 'from-cyan-950/40 to-cyan-900/10',
+    bg: 'from-cyan-950/40 via-slate-900/90 to-slate-950/95',
     text: 'text-cyan-400',
-    border: 'border-cyan-500/20',
-    bar: 'bg-gradient-to-r from-cyan-500 to-sky-400',
-    glow: 'shadow-cyan-500/10'
+    border: 'border-cyan-500/20 hover:border-cyan-500/40',
+    barFrom: 'from-cyan-500',
+    barTo: 'to-sky-400',
+    iconBg: 'bg-cyan-500/10 border-cyan-500/30',
+    iconColor: '#06b6d4',
+    accentGlow: 'shadow-cyan-500/20',
+    accentText: 'text-cyan-300'
   },
 };
+
+// Render custom volumetric 3D vector illustration inline SVGs for high-quality visual finish
+function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[MuscleGroup]) {
+  switch (muscle) {
+    case 'Chest':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          {/* Stylized high-tech chest armor plating */}
+          <path d="M12 2L4 5v6c0 5.5 3.5 10 8 11 4.5-1 8-5.5 8-11V5l-8-3z" />
+          <path d="M12 22V10" />
+          <path d="M6 9h12" />
+          <path d="M7 13c2 2 4 2 5 2s3 0 5-2" />
+        </svg>
+      );
+    case 'Back':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          {/* Stylized lats V-taper wing plates */}
+          <path d="M12 3l-8 4v2c0 4 3 8 8 12 5-4 8-8 8-12V7l-8-4z" />
+          <path d="M7 11h10" />
+          <path d="M8 15h8" />
+          <path d="M9 19h6" />
+        </svg>
+      );
+    case 'Legs':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          {/* Volumetric power pillar legs */}
+          <rect x="5" y="3" width="5" height="18" rx="2" />
+          <rect x="14" y="3" width="5" height="18" rx="2" />
+          <path d="M10 8h4" />
+          <path d="M10 14h4" />
+        </svg>
+      );
+    case 'Shoulders':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          {/* Dual shoulder pauldron guards */}
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+          <path d="M3.27 6.96L12 12.01l8.73-5.05" />
+          <path d="M12 22.08V12" />
+        </svg>
+      );
+    case 'Arms':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          {/* Mighty flexed bicep curve with fist gauntlet */}
+          <path d="M15 14c.2-1 .7-1.7 1.5-2 2.2-.7 3.5-2.5 3.5-5a5 5 0 00-5-5c-1.5 0-2.8.5-4 1.5M11 12H7a4 4 0 00-4 4v4h12v-6" />
+          <circle cx="14" cy="18" r="1.5" />
+        </svg>
+      );
+    case 'Core':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+          {/* Solid 3D abdominal hexagonal block grid */}
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M2 12l10 5 10-5" />
+        </svg>
+      );
+  }
+}
 
 export default function Dashboard() {
   // State for user details, progress, and history
   const [user, setUser] = useState(INITIAL_USER);
   const [muscleProgresses, setMuscleProgresses] = useState<MuscleProgress[]>(() => {
-    // Standardize initial level curves on startup using our utility
     return INITIAL_MUSCLE_PROGRESS.map((p) => ({
       ...p,
       xpToNextLevel: getXpRequiredForNextLevel(p.level),
@@ -84,7 +169,7 @@ export default function Dashboard() {
   const [sessionName, setSessionName] = useState('Entrenamiento Rápido');
   const [activeSets, setActiveSets] = useState<WorkoutSet[]>([]);
 
-  // UX Improvement 1: Store the last performed set data per exercise ID
+  // UX Improvement 1: Store the last performed set data per exercise ID to load on selection
   const [lastSetPerExercise, setLastSetPerExercise] = useState<Record<string, { weight: number; reps: number; rpe: number }>>({
     'ex-1': { weight: 65, reps: 8, rpe: 9 }, // Initialize with historical bench press
     'ex-10': { weight: 25, reps: 12, rpe: 8 },
@@ -105,7 +190,7 @@ export default function Dashboard() {
   // State for active tabs
   const [activeTab, setActiveTab] = useState<'progress' | 'history' | 'exercises'>('progress');
 
-  // Synchronize input loading on exercise change directly without triggering useEffect react-hooks warnings
+  // Synchronize input loading on exercise change directly inside selection handler
   const handleExerciseChange = (exerciseId: string) => {
     setSelectedExerciseId(exerciseId);
     if (lastSetPerExercise[exerciseId]) {
@@ -120,7 +205,7 @@ export default function Dashboard() {
     }
   };
 
-  // Handle automatic countdown timer ticking using standard effect and avoiding synchronous cascading warnings
+  // Handle automatic countdown timer ticking inside standard effect
   useEffect(() => {
     if (isTimerActive && !isTimerPaused) {
       if (timeLeft > 0) {
@@ -128,7 +213,6 @@ export default function Dashboard() {
           setTimeLeft((prev) => prev - 1);
         }, 1000);
       } else {
-        // Handle expiration inside a timeout to run completely outside the render cycle
         setTimeout(() => {
           setIsTimerActive(false);
           alert('⏰ ¡Tiempo de descanso completado! Listo para la siguiente serie.');
@@ -141,7 +225,7 @@ export default function Dashboard() {
     };
   }, [isTimerActive, isTimerPaused, timeLeft]);
 
-  // Incrementor helpers with double borders and physical feedback click responses
+  // Incrementor helpers with physical click scale effects
   const changeWeight = (amount: number) => {
     setInputWeight((prev) => Math.max(0, prev + amount));
   };
@@ -267,62 +351,81 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-32">
-      {/* HEADER SECTION (Claymorphic Navigation style) */}
-      <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/60 px-4 py-3.5 shadow-clay-sm">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {user.avatarUrl ? (
-              <div className="relative w-11 h-11 shadow-clay-sm rounded-full overflow-hidden">
-                <Image
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  width={44}
-                  height={44}
-                  className="rounded-full border-2 border-emerald-500 object-cover"
-                />
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-36 relative overflow-hidden">
+      {/* 3D AMBIENT MESH GLOWS (Prevents dark flat backgrounds, simulates premium high-end RPG console) */}
+      <div className="fixed -top-16 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed top-1/3 -left-36 w-96 h-96 bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="fixed bottom-10 -right-24 w-80 h-80 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* HEADER SECTION (Elevated Character Profile Card) */}
+      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-4 shadow-clay-md">
+        <div className="max-w-md mx-auto">
+          {/* RPG Player Profile Card */}
+          <div className="bg-gradient-to-br from-slate-900/95 via-slate-950 to-slate-900 p-4.5 rounded-3xl border border-slate-800 shadow-clay-sm flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {/* Elevated Ring Avatar */}
+              <div className="relative">
+                <div className="w-13 h-13 rounded-full overflow-hidden border-2 border-emerald-500 ring-4 ring-emerald-500/20 shadow-neon-glow flex items-center justify-center bg-slate-950">
+                  {user.avatarUrl ? (
+                    <Image
+                      src={user.avatarUrl}
+                      alt={user.name}
+                      width={52}
+                      height={52}
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-black text-xl text-emerald-400">{user.name.charAt(0)}</span>
+                  )}
+                </div>
+                {/* Micro Level Indicator badge */}
+                <div className="absolute -bottom-1.5 -right-1 bg-gradient-to-b from-amber-400 to-orange-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full shadow-clay-badge border border-white/20">
+                  LV {user.level}
+                </div>
               </div>
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center font-bold text-slate-950 shadow-clay-sm">
-                {user.name.charAt(0)}
+
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-sm font-black text-slate-200 tracking-wide">{user.name}</h2>
+                  <span className="bg-gradient-to-r from-emerald-500/15 to-teal-500/15 text-emerald-400 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider border border-emerald-500/30">
+                    PLAYER
+                  </span>
+                </div>
+                <div className="text-xs text-slate-400 font-bold mt-0.5 flex items-center gap-1.5">
+                  <span className="text-amber-400 font-extrabold">{user.rankName}</span>
+                  <span className="text-slate-600">•</span>
+                  <span>{user.totalXp} XP</span>
+                </div>
               </div>
-            )}
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <h2 className="text-sm font-bold text-slate-200">{user.name}</h2>
-                <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase border border-emerald-500/20 shadow-clay-sm">
-                  {user.rankName}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium">Nivel General {user.level} • {user.totalXp} XP Totales</p>
             </div>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="text-xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">GymRPG</span>
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Hito 2b Clay</span>
+
+            <div className="text-right">
+              <span className="text-xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">GymRPG</span>
+              <span className="text-[8px] text-slate-500 uppercase tracking-widest font-black block mt-0.5">MÓVIL NATIVO</span>
+            </div>
           </div>
         </div>
       </header>
 
       {/* FLOATING AUTOMATIC REST TIMER OVERLAY */}
       {isTimerActive && (
-        <div className="fixed bottom-24 right-4 z-50 animate-bounce">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-500/30 p-3.5 rounded-2xl shadow-clay-md flex items-center space-x-3 text-xs w-56">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-mono font-bold border border-emerald-500/25">
+        <div className="fixed bottom-28 right-4 z-50 animate-bounce">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-clay-md flex items-center space-x-3 text-xs w-60">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center text-emerald-400 font-mono font-black border border-emerald-500/30 shadow-sunken">
               {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
             </div>
             <div className="flex-1">
-              <span className="font-extrabold text-slate-300 block">Descanso Activo</span>
-              <div className="flex space-x-2 mt-1">
+              <span className="font-black text-slate-200 block text-[11px] tracking-wide">Descanso de Serie</span>
+              <div className="flex space-x-2 mt-1.5">
                 <button
                   onClick={() => setIsTimerPaused(!isTimerPaused)}
-                  className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded font-bold transition-all"
+                  className="text-[10px] bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/40 text-slate-200 px-2 py-1 rounded-md font-extrabold shadow-clay-sm active:scale-95 transition-all"
                 >
                   {isTimerPaused ? 'Reanudar' : 'Pausar'}
                 </button>
                 <button
                   onClick={() => setIsTimerActive(false)}
-                  className="text-[10px] bg-red-950/40 text-red-400 px-1.5 py-0.5 rounded font-bold border border-red-500/10 transition-all"
+                  className="text-[10px] bg-red-950/60 text-red-400 px-2 py-1 rounded-md font-extrabold border border-red-500/20 active:scale-95 transition-all"
                 >
                   Saltar
                 </button>
@@ -333,15 +436,15 @@ export default function Dashboard() {
       )}
 
       {/* MAIN CONTAINER */}
-      <main className="max-w-md mx-auto px-4 pt-5 space-y-6">
+      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
 
         {/* TABS SELECTOR (Sunken track + clay pills) */}
         <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-900 shadow-sunken">
           <button
             onClick={() => setActiveTab('progress')}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 ${
+            className={`flex-1 py-3 text-xs font-black rounded-xl transition-all duration-200 cursor-pointer ${
               activeTab === 'progress'
-                ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/30'
+                ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/50'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
@@ -349,9 +452,9 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 ${
+            className={`flex-1 py-3 text-xs font-black rounded-xl transition-all duration-200 cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/30'
+                ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/50'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
@@ -359,9 +462,9 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setActiveTab('exercises')}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 ${
+            className={`flex-1 py-3 text-xs font-black rounded-xl transition-all duration-200 cursor-pointer ${
               activeTab === 'exercises'
-                ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/30'
+                ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/50'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
@@ -373,63 +476,75 @@ export default function Dashboard() {
         {activeTab === 'progress' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-extrabold tracking-wider text-slate-500 uppercase">Progresión 3D de Rangos</h3>
-              <span className="text-[11px] font-bold text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/10 shadow-clay-sm">
-                ¡Matemáticas de Tonelaje Activas!
+              <h3 className="text-[11px] font-black tracking-wider text-slate-500 uppercase">Progresión de Rangos Musculares</h3>
+              <span className="text-[10px] font-black text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 shadow-clay-badge">
+                Tonnage-Based XP
               </span>
             </div>
 
-            {/* CLAYMORPHIC MUSCLE CARDS LIST */}
-            <div className="grid grid-cols-1 gap-4">
+            {/* VOLUMETRIC HIGH-CONTRAST MUSCLE CARDS LIST */}
+            <div className="grid grid-cols-1 gap-5">
               {muscleProgresses.map((progress) => {
-                const color = MUSCLE_COLORS[progress.muscleGroup];
+                const theme = MUSCLE_THEMES[progress.muscleGroup];
                 const percentage = Math.min(100, (progress.currentXp / progress.xpToNextLevel) * 100);
                 const primaryExercises = INITIAL_EXERCISES.filter(e => e.primaryMuscleGroup === progress.muscleGroup);
 
                 return (
                   <div
                     key={progress.muscleGroup}
-                    className={`bg-gradient-to-br ${color.bg} p-5 rounded-3xl border ${color.border} shadow-clay-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-clay-lg`}
+                    className={`bg-gradient-to-br ${theme.bg} p-5.5 rounded-3xl border-2 ${theme.border} ${theme.accentGlow} shadow-clay-md transition-all duration-300 hover:-translate-y-1 hover:shadow-clay-lg`}
                   >
-                    {/* Muscle Top Line */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-950/40 flex items-center justify-center text-2xl border border-white/5 shadow-clay-sm">
-                          {MUSCLE_EMOJIS[progress.muscleGroup]}
+                    {/* Muscle Top Line (3D Plating Style) */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* 3D Glowing Icon Container */}
+                        <div className={`w-14 h-14 rounded-2xl ${theme.iconBg} border flex items-center justify-center shadow-clay-sm`}>
+                          {renderMuscleIcon(progress.muscleGroup, theme)}
                         </div>
                         <div>
-                          <h4 className="font-extrabold text-slate-100 text-base flex items-center gap-2">
+                          <h4 className="font-black text-slate-100 text-base flex items-center gap-2">
                             {progress.muscleGroup === 'Chest' ? 'Pecho' :
                              progress.muscleGroup === 'Back' ? 'Espalda' :
                              progress.muscleGroup === 'Legs' ? 'Piernas' :
                              progress.muscleGroup === 'Shoulders' ? 'Hombros' :
                              progress.muscleGroup === 'Arms' ? 'Brazos' : 'Core'}
-                            <span className="text-xs bg-slate-950/60 text-slate-300 px-2 py-0.5 rounded-full font-mono font-bold shadow-sunken border border-white/5">
-                              Niv. {progress.level}
-                            </span>
                           </h4>
-                          <p className="text-xs text-slate-400/90 font-semibold">{progress.rankName}</p>
+                          {/* Elevated Rank Badge with Semi-Transparent border */}
+                          <p className="text-[11px] text-slate-400 font-bold tracking-wide mt-0.5">{progress.rankName}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-mono font-bold text-slate-300">
-                          {progress.currentXp} <span className="text-[10px] text-slate-500">/ {progress.xpToNextLevel} XP</span>
+
+                      {/* Level and XP Raised Pill Badges */}
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="bg-gradient-to-b from-slate-800 to-slate-950 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-xl border border-emerald-500/30 shadow-clay-badge">
+                          NIV. {progress.level}
+                        </span>
+                        <span className="text-[10px] font-mono font-black text-slate-400">
+                          {progress.currentXp} <span className="text-[9px] text-slate-600">/ {progress.xpToNextLevel} XP</span>
                         </span>
                       </div>
                     </div>
 
-                    {/* Claymorphic Sunken Progress Bar Container */}
-                    <div className="mt-4 h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900 shadow-sunken p-[2px]">
+                    {/* Highly Polished 3D Cylindrical Progress Bar */}
+                    <div className="mt-5 h-5.5 w-full bg-slate-950 rounded-full border border-slate-900 shadow-sunken p-[3.5px] relative overflow-hidden">
+                      {/* Glossy Tube overlay representing real curved plastic reflection */}
+                      <div className="absolute inset-x-0 top-0.5 h-1.5 bg-white/10 rounded-full blur-[0.5px] z-10 pointer-events-none mx-2" />
+
                       <div
-                        className={`h-full rounded-full ${color.bar} transition-all duration-500 shadow-[inset_1px_1px_2px_rgba(255,255,255,0.4)]`}
+                        className={`h-full rounded-full bg-gradient-to-r ${theme.barFrom} ${theme.barTo} transition-all duration-500 relative shadow-[inset_1px_2px_2px_rgba(255,255,255,0.4)]`}
                         style={{ width: `${percentage}%` }}
-                      />
+                      >
+                        {/* Dynamic Neon Head Light to represent progressing heat */}
+                        {percentage > 3 && (
+                          <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white rounded-r-full blur-xs animate-pulse opacity-90" />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Exercise context details */}
-                    <div className="mt-4 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-900/50">
-                      <span className="font-medium">{primaryExercises.length} Ejercicios registrados</span>
-                      <span className="text-slate-600 font-extrabold tracking-wider uppercase text-[9px]">Foco Principal</span>
+                    {/* Action exercise metadata */}
+                    <div className="mt-4.5 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-900/40">
+                      <span className="font-semibold">{primaryExercises.length} Ejercicios disponibles</span>
+                      <span className={`font-black uppercase tracking-widest text-[9px] ${theme.accentText}`}>Grupo Primario</span>
                     </div>
                   </div>
                 );
@@ -441,35 +556,35 @@ export default function Dashboard() {
         {/* TAB 2: HISTORICAL LOGS */}
         {activeTab === 'history' && (
           <div className="space-y-4">
-            <h3 className="text-xs font-extrabold tracking-wider text-slate-500 uppercase px-1">Tus Sesiones Realizadas</h3>
+            <h3 className="text-[11px] font-black tracking-wider text-slate-500 uppercase px-1">Tus Sesiones Realizadas</h3>
             {sessions.length === 0 ? (
               <p className="text-xs text-slate-500 text-center py-10">Aún no has registrado ningún entrenamiento.</p>
             ) : (
               <div className="space-y-4">
                 {sessions.map((session) => (
                   <div key={session.id} className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 rounded-3xl border border-slate-800/80 shadow-clay-md">
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-3.5">
                       <div>
-                        <h4 className="font-extrabold text-slate-200 text-sm">{session.name}</h4>
-                        <p className="text-[11px] text-slate-500 font-semibold">{session.date}</p>
+                        <h4 className="font-black text-slate-200 text-sm tracking-wide">{session.name}</h4>
+                        <p className="text-[11px] text-slate-500 font-bold mt-0.5">{session.date}</p>
                       </div>
                       {session.xpGained && (
-                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-extrabold px-3 py-1 rounded-full shadow-clay-sm">
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-xs font-black px-3.5 py-1.5 rounded-xl shadow-clay-badge">
                           +{session.xpGained} EXP
                         </span>
                       )}
                     </div>
 
                     {/* Sets summary */}
-                    <div className="space-y-2 border-t border-slate-900 pt-3.5">
+                    <div className="space-y-2 border-t border-slate-900/80 pt-4">
                       {session.sets.map((set, idx) => {
                         const exercise = INITIAL_EXERCISES.find(e => e.id === set.exerciseId);
                         return (
-                          <div key={set.id} className="flex justify-between text-xs text-slate-300">
+                          <div key={set.id} className="flex justify-between text-xs text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-slate-900">
                             <span>
                               Serie {idx + 1}: <strong className="text-slate-200 font-bold">{exercise?.name}</strong>
                             </span>
-                            <span className="font-mono text-slate-400 font-semibold">
+                            <span className="font-mono text-slate-400 font-bold">
                               {set.weight} kg × {set.reps} {set.rpe ? `(RPE ${set.rpe})` : ''}
                             </span>
                           </div>
@@ -485,57 +600,63 @@ export default function Dashboard() {
 
         {/* TAB 3: EXERCISE DIRECTORY */}
         {activeTab === 'exercises' && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-extrabold tracking-wider text-slate-500 uppercase px-1">Catálogo de Ejercicios</h3>
+          <div className="space-y-4">
+            <h3 className="text-[11px] font-black tracking-wider text-slate-500 uppercase px-1">Catálogo de Ejercicios</h3>
             <div className="space-y-3">
-              {INITIAL_EXERCISES.map((exercise) => (
-                <div key={exercise.id} className="bg-gradient-to-br from-slate-900 to-slate-950 p-4.5 rounded-3xl border border-slate-800/60 shadow-clay-sm">
-                  <div className="flex justify-between items-start mb-1.5">
-                    <h4 className="font-extrabold text-sm text-slate-100">{exercise.name}</h4>
-                    <span className="bg-slate-950 text-slate-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-800 shadow-clay-sm">
-                      {exercise.primaryMuscleGroup}
-                    </span>
-                  </div>
-                  {exercise.description && (
-                    <p className="text-xs text-slate-400/90 leading-relaxed">{exercise.description}</p>
-                  )}
-                  {exercise.secondaryMuscleGroups && exercise.secondaryMuscleGroups.length > 0 && (
-                    <div className="flex items-center space-x-2 mt-3 pt-2.5 border-t border-slate-950">
-                      <span className="text-[9px] text-slate-500 uppercase font-extrabold tracking-wider">Músculos Secundarios:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {exercise.secondaryMuscleGroups.map(sec => (
-                          <span key={sec} className="bg-slate-900/60 text-slate-400 text-[9px] px-2 py-0.5 rounded-full border border-slate-800 font-medium">
-                            {sec}
-                          </span>
-                        ))}
-                      </div>
+              {INITIAL_EXERCISES.map((exercise) => {
+                const theme = MUSCLE_THEMES[exercise.primaryMuscleGroup];
+                return (
+                  <div key={exercise.id} className="bg-gradient-to-br from-slate-900/90 via-slate-950 to-slate-900 p-4.5 rounded-3xl border border-slate-800/80 shadow-clay-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-black text-sm text-slate-100 tracking-wide">{exercise.name}</h4>
+                      <span className={`bg-gradient-to-b from-slate-950 to-slate-900 ${theme.text} text-[10px] font-black px-3 py-1 rounded-full border border-slate-800 shadow-clay-badge`}>
+                        {exercise.primaryMuscleGroup}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    {exercise.description && (
+                      <p className="text-xs text-slate-400/95 leading-relaxed font-medium">{exercise.description}</p>
+                    )}
+                    {exercise.secondaryMuscleGroups && exercise.secondaryMuscleGroups.length > 0 && (
+                      <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-slate-950">
+                        <span className="text-[9px] text-slate-500 uppercase font-black tracking-wider">Secundarios:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {exercise.secondaryMuscleGroups.map(sec => {
+                            const secTheme = MUSCLE_THEMES[sec];
+                            return (
+                              <span key={sec} className={`bg-slate-950 ${secTheme.text} text-[9px] px-2 py-0.5 rounded-md border border-slate-900 font-bold`}>
+                                {sec}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
       </main>
 
       {/* TACTILE 3D BOTTOM NAV BAR WITH CLAY CTA */}
-      <div className="fixed bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md border-t border-slate-900/80 p-4.5 z-40 max-w-md mx-auto shadow-clay-lg">
+      <div className="fixed bottom-0 inset-x-0 bg-slate-950/95 backdrop-blur-md border-t border-slate-900/80 p-5 z-40 max-w-md mx-auto shadow-clay-lg">
         <button
           onClick={() => {
             setIsTrainingOpen(true);
             setActiveSets([]);
           }}
-          className="w-full bg-gradient-to-b from-emerald-400 via-emerald-500 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 font-black tracking-wide py-4 rounded-2xl flex items-center justify-center space-x-3 shadow-clay-emerald border border-emerald-300/20 transition-all duration-200 active:scale-95 active:shadow-sunken"
+          className="w-full bg-gradient-to-b from-emerald-400 via-emerald-500 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 font-black tracking-wider py-4.5 rounded-2xl flex items-center justify-center space-x-3 shadow-clay-emerald border border-emerald-300/25 transition-all duration-200 active:scale-[0.98] cursor-pointer"
         >
           <span className="text-xl filter drop-shadow">🏋️‍♂️</span>
-          <span className="text-sm">INICIAR ENTRENAMIENTO</span>
+          <span className="text-sm uppercase tracking-wide">INICIAR ENTRENAMIENTO</span>
         </button>
       </div>
 
       {/* CLAYMORPHIC INTERACTIVE WORKOUT MODAL */}
       {isTrainingOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end justify-center p-0 sm:p-4">
-          <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-t sm:border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto flex flex-col shadow-clay-lg">
+          <div className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 border-t sm:border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto flex flex-col shadow-clay-lg">
 
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-950 flex justify-between items-center sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
@@ -544,13 +665,13 @@ export default function Dashboard() {
                   type="text"
                   value={sessionName}
                   onChange={(e) => setSessionName(e.target.value)}
-                  className="bg-slate-950 border-none text-slate-100 font-extrabold text-base px-3 py-1.5 rounded-xl focus:ring-2 focus:ring-emerald-500/50 w-full shadow-sunken border border-slate-800"
+                  className="bg-slate-950 border-none text-slate-100 font-extrabold text-base px-3 py-2 rounded-xl focus:ring-2 focus:ring-emerald-500/50 w-full shadow-sunken border border-slate-800"
                 />
-                <p className="text-[10px] text-slate-400 font-semibold mt-1 px-1">Registra tus series para ganar experiencia en tus músculos.</p>
+                <p className="text-[10px] text-slate-400 font-bold mt-1.5 px-1">Registra tus series para ganar experiencia en tus músculos.</p>
               </div>
               <button
                 onClick={() => setIsTrainingOpen(false)}
-                className="text-slate-400 hover:text-slate-200 bg-slate-950/60 w-8 h-8 rounded-full flex items-center justify-center shadow-clay-sm hover:scale-105 active:scale-95 border border-slate-800/50 transition-all"
+                className="text-slate-400 hover:text-slate-200 bg-slate-950/60 w-8 h-8 rounded-full flex items-center justify-center shadow-clay-sm hover:scale-105 active:scale-95 border border-slate-800/50 transition-all cursor-pointer"
               >
                 ✕
               </button>
@@ -560,16 +681,16 @@ export default function Dashboard() {
             <div className="p-5 space-y-5 flex-1">
 
               {/* Form to log a new set (Sunken block) */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-900 shadow-sunken space-y-5">
+              <div className="p-4.5 rounded-2.5xl bg-slate-950 border border-slate-900 shadow-sunken space-y-5">
                 <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase block">Agregar Serie</span>
 
                 {/* Select Exercise (Tactile drop-down) */}
-                <div className="space-y-1">
-                  <label className="text-[11px] text-slate-500 font-bold px-1">Ejercicio</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-slate-500 font-black px-1 uppercase tracking-wide">Ejercicio</label>
                   <select
                     value={selectedExerciseId}
                     onChange={(e) => handleExerciseChange(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-200 font-bold shadow-clay-sm focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer"
+                    className="w-full bg-slate-900 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-200 font-black shadow-clay-sm focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer"
                   >
                     {INITIAL_EXERCISES.map((ex) => (
                       <option key={ex.id} value={ex.id}>
@@ -580,23 +701,23 @@ export default function Dashboard() {
                 </div>
 
                 {/* Metrics Form with Increment/Decrement Buttons */}
-                <div className="space-y-4">
+                <div className="space-y-4.5">
                   {/* Weight Control Row */}
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-900 shadow-sunken">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400 font-bold px-1">Peso (kg)</span>
-                      <span className="text-[11px] text-slate-500 font-mono font-bold">Activo: {inputWeight} kg</span>
+                  <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-900 shadow-sunken">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[11px] text-slate-400 font-black px-1 uppercase tracking-wide">Peso (kg)</span>
+                      <span className="text-[11px] text-emerald-400 font-mono font-black">{inputWeight} kg</span>
                     </div>
                     <div className="flex items-center space-x-1.5">
                       <button
                         onClick={() => changeWeight(-5)}
-                        className="w-10 h-9 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                        className="w-10 h-10 rounded-xl bg-slate-950 text-xs font-black text-slate-300 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                       >
                         -5
                       </button>
                       <button
                         onClick={() => changeWeight(-2.5)}
-                        className="w-11 h-9 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                        className="w-11 h-10 rounded-xl bg-slate-950 text-xs font-black text-slate-300 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                       >
                         -2.5
                       </button>
@@ -605,18 +726,18 @@ export default function Dashboard() {
                         type="number"
                         value={inputWeight}
                         onChange={(e) => setInputWeight(Number(e.target.value))}
-                        className="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center text-xs text-slate-200 font-bold shadow-sunken"
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2 text-center text-xs text-slate-200 font-black shadow-sunken focus:shadow-sunken-active focus:ring-1 focus:ring-emerald-500/50"
                       />
 
                       <button
                         onClick={() => changeWeight(2.5)}
-                        className="w-11 h-9 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                        className="w-11 h-10 rounded-xl bg-slate-950 text-xs font-black text-emerald-400 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                       >
                         +2.5
                       </button>
                       <button
                         onClick={() => changeWeight(5)}
-                        className="w-10 h-9 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 active:shadow-sunken transition-all cursor-pointer"
+                        className="w-10 h-10 rounded-xl bg-slate-950 text-xs font-black text-emerald-400 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                       >
                         +5
                       </button>
@@ -624,15 +745,15 @@ export default function Dashboard() {
                   </div>
 
                   {/* Reps and RPE side-by-side controls */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3.5">
 
                     {/* Reps Control */}
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-900 shadow-sunken">
-                      <span className="text-[11px] text-slate-400 font-bold block mb-1 px-1">Reps</span>
+                    <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-900 shadow-sunken">
+                      <span className="text-[11px] text-slate-400 font-black block mb-1.5 px-1 uppercase tracking-wide">Reps</span>
                       <div className="flex items-center justify-between space-x-1">
                         <button
                           onClick={() => changeReps(-1)}
-                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-slate-950 text-xs font-black text-slate-300 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                         >
                           -1
                         </button>
@@ -640,11 +761,11 @@ export default function Dashboard() {
                           type="number"
                           value={inputReps}
                           onChange={(e) => setInputReps(Number(e.target.value))}
-                          className="w-12 bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center text-xs text-slate-200 font-bold shadow-sunken"
+                          className="w-12 bg-slate-950 border border-slate-800 rounded-xl p-2 text-center text-xs text-slate-200 font-black shadow-sunken focus:shadow-sunken-active focus:ring-1 focus:ring-emerald-500/50"
                         />
                         <button
                           onClick={() => changeReps(1)}
-                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-slate-950 text-xs font-black text-emerald-400 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                         >
                           +1
                         </button>
@@ -652,12 +773,12 @@ export default function Dashboard() {
                     </div>
 
                     {/* RPE Control */}
-                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-900 shadow-sunken">
-                      <span className="text-[11px] text-slate-400 font-bold block mb-1 px-1">RPE (1-10)</span>
+                    <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-900 shadow-sunken">
+                      <span className="text-[11px] text-slate-400 font-black block mb-1.5 px-1 uppercase tracking-wide">RPE (1-10)</span>
                       <div className="flex items-center justify-between space-x-1">
                         <button
                           onClick={() => changeRpe(-1)}
-                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-slate-300 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-slate-950 text-xs font-black text-slate-300 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                         >
                           -1
                         </button>
@@ -667,11 +788,11 @@ export default function Dashboard() {
                           max="10"
                           value={inputRpe}
                           onChange={(e) => setInputRpe(Number(e.target.value))}
-                          className="w-12 bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center text-xs text-slate-200 font-bold shadow-sunken"
+                          className="w-12 bg-slate-950 border border-slate-800 rounded-xl p-2 text-center text-xs text-slate-200 font-black shadow-sunken focus:shadow-sunken-active focus:ring-1 focus:ring-emerald-500/50"
                         />
                         <button
                           onClick={() => changeRpe(1)}
-                          className="w-8 h-8 rounded-lg bg-slate-950 text-xs font-bold text-emerald-400 border border-slate-800 shadow-clay-sm active:scale-90 transition-all cursor-pointer"
+                          className="w-9 h-9 rounded-xl bg-slate-950 text-xs font-black text-emerald-400 border border-slate-800 shadow-clay-badge active:scale-90 transition-all cursor-pointer"
                         >
                           +1
                         </button>
@@ -683,16 +804,16 @@ export default function Dashboard() {
 
                 <button
                   onClick={handleAddSet}
-                  className="w-full bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-emerald-400 font-extrabold border border-slate-700/50 py-3 rounded-xl text-xs shadow-clay-sm hover:scale-[1.01] active:scale-95 active:shadow-sunken transition-all duration-150 cursor-pointer"
+                  className="w-full bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-emerald-400 font-black border border-slate-700/50 py-3.5 rounded-xl text-xs uppercase tracking-wide shadow-clay-badge active:scale-[0.98] transition-all duration-150 cursor-pointer"
                 >
                   + Agregar Serie (Iniciar Descanso)
                 </button>
               </div>
 
               {/* Added sets list */}
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase">Series en Sesión Actual ({activeSets.length})</span>
+                  <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase">Series en Sesión ({activeSets.length})</span>
                   {activeSets.length > 0 && (
                     <button onClick={() => setActiveSets([])} className="text-[10px] text-rose-400 hover:text-rose-300 font-bold transition-all">
                       Limpiar todo
@@ -705,7 +826,7 @@ export default function Dashboard() {
                     No has agregado ninguna serie todavía.
                   </p>
                 ) : (
-                  <div className="space-y-2 max-h-[20vh] overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-[22vh] overflow-y-auto pr-1">
                     {activeSets.map((set, idx) => {
                       const exercise = INITIAL_EXERCISES.find((e) => e.id === set.exerciseId);
                       return (
@@ -721,7 +842,7 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <div className="flex items-center space-x-3">
-                            <span className="font-mono text-slate-300 font-bold bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                            <span className="font-mono text-slate-300 font-bold bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800">
                               {set.weight}kg x {set.reps} (RPE {set.rpe})
                             </span>
                             <button
@@ -744,13 +865,13 @@ export default function Dashboard() {
             <div className="p-5 border-t border-slate-950 bg-slate-900/95 sticky bottom-0 z-10 flex gap-3">
               <button
                 onClick={() => setIsTrainingOpen(false)}
-                className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-300 py-3.5 rounded-2xl text-xs font-bold shadow-clay-sm active:scale-95 active:shadow-sunken transition-all border border-slate-700/20 cursor-pointer"
+                className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-300 py-4 rounded-2xl text-xs font-black shadow-clay-sm active:scale-95 transition-all border border-slate-700/20 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCompleteSession}
-                className="flex-[2] bg-gradient-to-b from-emerald-400 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 py-3.5 rounded-2xl text-xs font-black tracking-wide shadow-clay-emerald border border-emerald-300/10 active:scale-95 active:shadow-sunken transition-all cursor-pointer"
+                className="flex-[2] bg-gradient-to-b from-emerald-400 to-teal-600 hover:from-emerald-300 hover:to-teal-500 text-slate-950 py-4 rounded-2xl text-xs font-black tracking-wide shadow-clay-emerald border border-emerald-300/10 active:scale-95 transition-all cursor-pointer"
               >
                 💾 GUARDAR & GANAR XP
               </button>
