@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #070a13;
+  --background: #030107;
   --foreground: #f8fafc;
 }
 
@@ -12,7 +12,6 @@
   --font-mono: var(--font-geist-mono);
 
   /* Enhanced 3D Claymorphism & High-Contrast Volumetric Shadows */
-  /* These utilize triple layer shading: deep dark drop shadow, bright top-left light source reflection, and soft bottom-right dark sink */
   --shadow-clay-sm: 4px 4px 10px rgba(0, 0, 0, 0.65), inset 2px 2px 4px rgba(255, 255, 255, 0.15), inset -3px -3px 6px rgba(0, 0, 0, 0.5);
   --shadow-clay-md: 10px 10px 22px rgba(0, 0, 0, 0.75), inset 3px 3px 7px rgba(255, 255, 255, 0.15), inset -6px -6px 12px rgba(0, 0, 0, 0.5);
   --shadow-clay-lg: 16px 16px 36px rgba(0, 0, 0, 0.85), inset 5px 5px 12px rgba(255, 255, 255, 0.18), inset -8px -8px 18px rgba(0, 0, 0, 0.6);
@@ -30,7 +29,7 @@
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at center, #0d061c 0%, #030107 100%);
   color: var(--foreground);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   overflow-x: hidden;
@@ -48,4 +47,42 @@ body {
 
 .pulse-glow-emerald {
   animation: pulseGlow 3s infinite ease-in-out;
+}
+
+/* HIGH-FANTASY MMO PORTAL & PURPLE FIRE AURA STYLES (From 1.webp and 2.webp) */
+@keyframes purpleFireGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.35), 0 0 25px rgba(139, 92, 246, 0.15), inset 0 0 10px rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(168, 85, 247, 0.8), 0 0 45px rgba(217, 70, 239, 0.45), inset 0 0 18px rgba(168, 85, 247, 0.3);
+    border-color: rgba(217, 70, 239, 0.75);
+  }
+}
+
+.purple-fire-aura {
+  animation: purpleFireGlow 2.5s infinite ease-in-out;
+  border-width: 2px;
+  background-color: rgba(10, 5, 22, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+@keyframes spinPortal {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spin-portal-ring {
+  animation: spinPortal 12s infinite linear;
+}
+
+/* Subtle Floating Runes background animation */
+@keyframes floatRunes {
+  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.15; }
+  50% { transform: translateY(-12px) rotate(180deg); opacity: 0.4; }
+}
+
+.floating-rune {
+  animation: floatRunes 8s infinite ease-in-out;
 }

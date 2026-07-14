@@ -14,6 +14,7 @@ import { calculateSetXp, addXpToMuscle, getXpRequiredForNextLevel } from '../uti
 // Import our new premium interactive components
 import BodyMapViewer from '../components/BodyMapViewer';
 import RanksGallery from '../components/RanksGallery';
+import WeeklyReport from '../components/WeeklyReport';
 
 // Color definitions for Hito 3 premium claymorphism visuals (vibrant gradients, borders, and glowing rings)
 const MUSCLE_THEMES: Record<MuscleGroup, {
@@ -198,7 +199,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'progress' | 'history' | 'exercises'>('progress');
 
   // Sub-tabs state inside the Progress section to avoid cluttering mobile viewport
-  const [progressViewMode, setProgressViewMode] = useState<'map' | 'cards' | 'matrix'>('map');
+  const [progressViewMode, setProgressViewMode] = useState<'map' | 'report' | 'cards' | 'matrix'>('map');
 
   // Trigger custom 3D slide-down toast notification
   const triggerToast = (title: string, message: string, type: 'success' | 'info' | 'timer' = 'success') => {
@@ -357,7 +358,6 @@ export default function Dashboard() {
       id: `s-${Date.now()}`,
       userId: user.id,
       name: sessionName,
-      // Record complete current ISO date to accurately feed recovery fatigue calculations
       date: new Date().toISOString().split('T')[0],
       sets: activeSets,
       xpGained: totalGainedXp,
@@ -374,6 +374,37 @@ export default function Dashboard() {
 
     triggerToast('🏆 ¡Entrenamiento Completado!', `Fórmula Tonelaje + RPE calculó un total de +${totalGainedXp} EXP.`, 'success');
   };
+
+  // Dynamic Routine Muscle Impact Distribution (From 3.webp reference)
+  const getSelectedExerciseImpact = () => {
+    const exercise = INITIAL_EXERCISES.find(e => e.id === selectedExerciseId);
+    if (!exercise) return [];
+
+    const impacts: Array<{ name: string; percentage: number; isPrimary: boolean }> = [];
+    const primaryName = exercise.primaryMuscleGroup === 'Chest' ? 'Pectoral' :
+                        exercise.primaryMuscleGroup === 'Back' ? 'Dorsal' :
+                        exercise.primaryMuscleGroup === 'Legs' ? 'Piernas' :
+                        exercise.primaryMuscleGroup === 'Shoulders' ? 'Hombros' :
+                        exercise.primaryMuscleGroup === 'Arms' ? 'Brazos' : 'Core';
+
+    if (!exercise.secondaryMuscleGroups || exercise.secondaryMuscleGroups.length === 0) {
+      impacts.push({ name: primaryName, percentage: 100, isPrimary: true });
+    } else {
+      impacts.push({ name: primaryName, percentage: 60, isPrimary: true });
+      const secPercentage = Math.round(40 / exercise.secondaryMuscleGroups.length);
+      exercise.secondaryMuscleGroups.forEach(sec => {
+        const secName = sec === 'Chest' ? 'Pecho' :
+                        sec === 'Back' ? 'Espalda' :
+                        sec === 'Legs' ? 'Piernas' :
+                        sec === 'Shoulders' ? 'Hombros' :
+                        sec === 'Arms' ? 'Brazos' : 'Core';
+        impacts.push({ name: secName, percentage: secPercentage, isPrimary: false });
+      });
+    }
+    return impacts;
+  };
+
+  const currentImpacts = getSelectedExerciseImpact();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-36 relative overflow-hidden">
@@ -406,8 +437,8 @@ export default function Dashboard() {
       )}
 
       {/* 3D AMBIENT MESH GLOWS */}
-      <div className="fixed -top-16 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="fixed top-1/3 -left-36 w-96 h-96 bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="fixed -top-16 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed top-1/3 -left-36 w-96 h-96 bg-fuchsia-500/10 rounded-full blur-[130px] pointer-events-none" />
       <div className="fixed bottom-10 -right-24 w-80 h-80 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
 
       {/* HEADER SECTION (Elevated Character Profile Card) */}
@@ -457,7 +488,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* HIGH Z-INDEX FLOATING AUTOMATIC REST TIMER countdown (z-[100]) */}
+      {/* HIGH Z-INDEX FLOATING AUTOMATIC REST TIMER (z-[100]) */}
       {isTimerActive && (
         <div className="fixed bottom-28 right-4 z-[100] animate-bounce">
           <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-emerald-500/60 p-4 rounded-2.5xl shadow-clay-lg flex items-center space-x-3.5 text-xs w-64 relative overflow-hidden">
@@ -523,15 +554,15 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* TAB 1: PROGRESS SUB-TABS (Anatomy Map, Details, Ranks Matrix) */}
+        {/* TAB 1: PROGRESS SUB-TABS (Anatomy Map, Weekly Report, Details, Ranks Matrix) */}
         {activeTab === 'progress' && (
           <div className="space-y-6">
 
-            {/* Elegant Sub-Tab Selector */}
-            <div className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-900/80 shadow-sunken w-full">
+            {/* Elegant Grid Sub-Tab Selector to handle 4 tabs cleanly on mobile */}
+            <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-1.5 rounded-2xl border border-slate-900 shadow-sunken w-full">
               <button
                 onClick={() => setProgressViewMode('map')}
-                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
                   progressViewMode === 'map'
                     ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
                     : 'text-slate-500 hover:text-slate-300'
@@ -540,8 +571,18 @@ export default function Dashboard() {
                 🗺️ MAPA ANATOMÍA
               </button>
               <button
+                onClick={() => setProgressViewMode('report')}
+                className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                  progressViewMode === 'report'
+                    ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                📊 REPORTE SEMANAL
+              </button>
+              <button
                 onClick={() => setProgressViewMode('cards')}
-                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
                   progressViewMode === 'cards'
                     ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
                     : 'text-slate-500 hover:text-slate-300'
@@ -551,7 +592,7 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setProgressViewMode('matrix')}
-                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
                   progressViewMode === 'matrix'
                     ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
                     : 'text-slate-500 hover:text-slate-300'
@@ -564,7 +605,14 @@ export default function Dashboard() {
             {/* RENDER ACTIVE VIEW SUB-MODE */}
             {progressViewMode === 'map' && (
               <div className="animate-fade-in">
-                <BodyMapViewer muscleProgresses={muscleProgresses} sessions={sessions} />
+                {/* Pass user level to dynamically scale metallic shield Overall Rank Badge */}
+                <BodyMapViewer muscleProgresses={muscleProgresses} sessions={sessions} userLevel={user.level} />
+              </div>
+            )}
+
+            {progressViewMode === 'report' && (
+              <div className="animate-fade-in">
+                <WeeklyReport sessions={sessions} />
               </div>
             )}
 
@@ -622,7 +670,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="mt-5 h-5.5 w-full bg-slate-950 rounded-full border border-slate-900 shadow-sunken p-[3.5px] relative overflow-hidden">
-                          <div className="absolute inset-x-0 top-0.5 h-1 bg-white/10 rounded-full blur-[0.5px] z-10 pointer-events-none mx-2" />
+                          <div className="absolute inset-x-0 top-0.5 h-1.5 bg-white/10 rounded-full blur-[0.5px] z-10 pointer-events-none mx-2" />
                           <div
                             className={`h-full rounded-full bg-gradient-to-r ${theme.barFrom} ${theme.barTo} transition-all duration-500 relative shadow-[inset_1px_2px_2px_rgba(255,255,255,0.4)]`}
                             style={{ width: `${percentage}%` }}
@@ -804,6 +852,24 @@ export default function Dashboard() {
                     ))}
                   </select>
                 </div>
+
+                {/* DISTRIBUTION PERCENTAGE PILLS (From 3.webp reference - wrapped in subtle purple outline aura) */}
+                {currentImpacts.length > 0 && (
+                  <div className="p-3 bg-purple-950/20 border border-purple-500/25 rounded-2xl shadow-sunken space-y-2">
+                    <span className="text-[9px] text-purple-400 font-black uppercase tracking-widest block">DISTRIBUCIÓN DE TRABAJO</span>
+                    <div className="flex flex-wrap gap-2">
+                      {currentImpacts.map(impact => (
+                        <div key={impact.name} className="flex items-center space-x-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 text-[10px] font-black">
+                          <span className={impact.isPrimary ? 'text-emerald-400' : 'text-fuchsia-400'}>●</span>
+                          <span className="text-slate-200">{impact.name}</span>
+                          <span className={impact.isPrimary ? 'text-emerald-400 font-mono font-black' : 'text-fuchsia-400 font-mono font-black'}>
+                            {impact.percentage}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Metrics Form with Increment/Decrement Buttons */}
                 <div className="space-y-4.5">

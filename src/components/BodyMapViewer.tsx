@@ -7,9 +7,10 @@ import { INITIAL_EXERCISES } from '../data/mockData';
 interface BodyMapViewerProps {
   muscleProgresses: MuscleProgress[];
   sessions: WorkoutSession[];
+  userLevel: number;
 }
 
-export default function BodyMapViewer({ muscleProgresses, sessions }: BodyMapViewerProps) {
+export default function BodyMapViewer({ muscleProgresses, sessions, userLevel }: BodyMapViewerProps) {
   const [viewMode, setViewMode] = useState<'ranks' | 'fatigue'>('ranks');
   const [activeSide, setActiveSide] = useState<'frente' | 'espalda'>('frente');
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | null>(null);
@@ -107,6 +108,42 @@ export default function BodyMapViewer({ muscleProgresses, sessions }: BodyMapVie
     }
   };
 
+  // Calculate overall player metallic shield rank based on level
+  const getOverallRankBadge = () => {
+    if (userLevel >= 21) {
+      return {
+        text: 'Hércules I',
+        style: 'from-purple-600 via-fuchsia-500 to-purple-700 border-purple-400 text-slate-100 shadow-[0_0_15px_rgba(168,85,247,0.5)]',
+        emoji: '🌟',
+      };
+    } else if (userLevel >= 16) {
+      return {
+        text: 'Élite II',
+        style: 'from-fuchsia-600 via-pink-500 to-fuchsia-700 border-fuchsia-400 text-slate-100 shadow-[0_0_15px_rgba(217,70,239,0.5)]',
+        emoji: '⚡',
+      };
+    } else if (userLevel >= 11) {
+      return {
+        text: 'Oro II',
+        style: 'from-amber-500 via-yellow-400 to-amber-600 border-yellow-300 text-slate-950',
+        emoji: '👑',
+      };
+    } else if (userLevel >= 6) {
+      return {
+        text: 'Plata I',
+        style: 'from-slate-400 via-slate-300 to-slate-500 border-slate-200 text-slate-950',
+        emoji: '⚔️',
+      };
+    }
+    return {
+      text: 'Bronze III',
+      style: 'from-amber-700 via-orange-600 to-amber-800 border-orange-500 text-slate-100',
+      emoji: '🛡️',
+    };
+  };
+
+  const overallRank = getOverallRankBadge();
+
   // Selected muscle metadata for Bottom Sheet
   const selectedProgress = selectedMuscle ? muscleProgresses.find(p => p.muscleGroup === selectedMuscle) : null;
   const selectedFatigue = selectedMuscle ? getMuscleFatigueInfo(selectedMuscle) : null;
@@ -114,30 +151,35 @@ export default function BodyMapViewer({ muscleProgresses, sessions }: BodyMapVie
   const selectedExercises = selectedMuscle ? INITIAL_EXERCISES.filter(e => e.primaryMuscleGroup === selectedMuscle) : [];
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-slate-800 p-5 rounded-3xl shadow-clay-lg space-y-6 relative">
+    <div className="bg-gradient-to-br from-slate-950/85 via-slate-900 to-slate-950/95 border-2 border-purple-500/25 p-5 rounded-3xl shadow-clay-lg space-y-6 relative overflow-hidden">
 
-      {/* HEADER & DUAL-MODE SWITCHER (Centered & Large visual layout) */}
-      <div className="flex flex-col items-center text-center space-y-4 border-b border-slate-800/60 pb-5">
+      {/* Subtle Floating Portal Runes inside body map background */}
+      <div className="absolute top-8 left-6 text-fuchsia-500/10 text-lg font-mono floating-rune pointer-events-none select-none">𐏓</div>
+      <div className="absolute top-20 right-8 text-purple-500/15 text-xl font-mono floating-rune pointer-events-none select-none" style={{ animationDelay: '2s' }}>𐎚</div>
+      <div className="absolute bottom-12 left-10 text-cyan-500/10 text-sm font-mono floating-rune pointer-events-none select-none" style={{ animationDelay: '4s' }}>𐎽</div>
+
+      {/* HEADER & DUAL-MODE SWITCHER (Centered RPG Portal layout) */}
+      <div className="flex flex-col items-center text-center space-y-4 border-b border-slate-900 pb-5">
         <div>
-          <h3 className="text-base font-black text-slate-100 tracking-wide">Mapa Corporal 3D</h3>
-          <p className="text-xs text-slate-400 font-bold mt-1">Monitorea tu maestría RPG o tu estado de fatiga científica.</p>
+          <h3 className="text-sm font-black text-slate-200 tracking-wide uppercase">MAPA CORPORAL INTERACTIVO</h3>
+          <p className="text-[11px] text-slate-400 font-bold mt-1">Explora tu progreso en tiempo real dentro del portal RPG.</p>
         </div>
 
         {/* Dual Mode Toggle (Ranks vs Fatigue) */}
         <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-900 shadow-sunken">
           <button
             onClick={() => setViewMode('ranks')}
-            className={`px-4.5 py-2.5 text-[10px] font-black rounded-xl transition-all duration-200 cursor-pointer ${
+            className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all duration-200 cursor-pointer ${
               viewMode === 'ranks'
                 ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/50'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            🏆 MODAL RANGOS
+            🏆 MODO RANGOS
           </button>
           <button
             onClick={() => setViewMode('fatigue')}
-            className={`px-4.5 py-2.5 text-[10px] font-black rounded-xl transition-all duration-200 cursor-pointer ${
+            className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all duration-200 cursor-pointer ${
               viewMode === 'fatigue'
                 ? 'bg-gradient-to-b from-slate-800 to-slate-900 text-emerald-400 shadow-clay-sm border border-slate-700/50'
                 : 'text-slate-500 hover:text-slate-300'
@@ -148,292 +190,289 @@ export default function BodyMapViewer({ muscleProgresses, sessions }: BodyMapVie
         </div>
       </div>
 
-      {/* ANATOMICAL SILHOUETTE CONTAINER (Centered & Sized maximally for easy tap interaction) */}
+      {/* ANATOMICAL SILHOUETTE CONTAINER (Centered & framed inside glowing magical ring) */}
       <div className="flex flex-col items-center space-y-5 py-2">
 
         {/* Anatomical Side Selector */}
-        <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-900 shadow-sunken">
+        <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-900 shadow-sunken z-20">
           <button
             onClick={() => setActiveSide('frente')}
-            className={`px-5 py-2 text-[10px] font-black rounded-lg transition-all duration-200 cursor-pointer ${
+            className={`px-4 py-1.5 text-[9px] font-black rounded-lg transition-all duration-200 cursor-pointer ${
               activeSide === 'frente'
-                ? 'bg-slate-800 text-slate-100 shadow-clay-sm'
+                ? 'bg-slate-800 text-slate-100'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            VISTA FRENTE
+            Frente
           </button>
           <button
             onClick={() => setActiveSide('espalda')}
-            className={`px-5 py-2 text-[10px] font-black rounded-lg transition-all duration-200 cursor-pointer ${
+            className={`px-4 py-1.5 text-[9px] font-black rounded-lg transition-all duration-200 cursor-pointer ${
               activeSide === 'espalda'
-                ? 'bg-slate-800 text-slate-100 shadow-clay-sm'
+                ? 'bg-slate-800 text-slate-100'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            VISTA ESPALDA
+            Espalda
           </button>
         </div>
 
-        {/* 3D Curved Vector SVG Human Silhouette with Holographic Neon Glow effect */}
-        <div className="bg-slate-950 border-2 border-slate-900 p-8.5 rounded-[36px] shadow-sunken relative w-full max-w-[280px] flex items-center justify-center transition-all">
+        {/* MAGICAL PORTAL HALO FRAMING THE BODY (From 1.webp reference) */}
+        <div className="relative w-full max-w-[270px] aspect-square flex items-center justify-center py-6">
 
-          <svg viewBox="0 0 160 280" className="w-56 h-80 select-none">
-            {/* Defs block to hold dynamic cybernetic glow filter parameters */}
-            <defs>
-              <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
+          {/* Glowing spinning halo backing representing the portal */}
+          <div className="absolute w-[240px] h-[240px] rounded-full border-4 border-dashed border-purple-500/40 spin-portal-ring blur-[0.5px] shadow-[0_0_35px_rgba(139,92,246,0.6)] pointer-events-none" />
+          <div className="absolute w-[230px] h-[240px] rounded-full border border-fuchsia-500/25 blur-[4px] pointer-events-none" />
 
-            {/* Stylized Human Body Head & Neck Base */}
-            <circle cx="80" cy="24" r="13" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
-            <path d="M74 36 C74 44, 86 44, 86 36 Z" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+          {/* Svg Silhouette Body Map sits inside this portal */}
+          <div className="relative w-full max-w-[200px] flex items-center justify-center z-10">
+            <svg viewBox="0 0 160 280" className="w-48 h-72 select-none filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)]">
+              {/* Defs block to hold dynamic cybernetic glow filter parameters */}
+              <defs>
+                <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
 
-            {/* FRENTE VIEW - Organic Curved Paths */}
-            {activeSide === 'frente' && (
-              <>
-                {/* Chest (Pecho Left & Right) */}
-                <g onClick={() => setSelectedMuscle('Chest')} className="cursor-pointer group">
-                  {/* Left Pec */}
-                  <path
-                    d="M 64,48 C 54,48 50,56 50,68 C 50,78 64,81 79,81 C 79,66 79,52 64,48 Z"
-                    fill={getMuscleFillColor('Chest')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Chest' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                  {/* Right Pec */}
-                  <path
-                    d="M 96,48 C 106,48 110,56 110,68 C 110,78 96,81 81,81 C 81,66 81,52 96,48 Z"
-                    fill={getMuscleFillColor('Chest')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Chest' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
+              {/* Stylized Human Body Head & Neck Base */}
+              <circle cx="80" cy="24" r="13" fill="#111827" stroke="#334155" strokeWidth="1.5" />
+              <path d="M74 36 C74 44, 86 44, 86 36 Z" fill="#111827" stroke="#334155" strokeWidth="1.5" />
 
-                {/* Core (Abdominales / Abs Matrix) */}
-                <path
-                  d="M 68,84 C 65,108 67,136 70,146 C 74,146 86,146 90,146 C 93,136 95,108 92,84 Z"
-                  fill={getMuscleFillColor('Core')}
-                  stroke="#070a13"
-                  strokeWidth="2.5"
-                  onClick={() => setSelectedMuscle('Core')}
-                  className="cursor-pointer transition-all duration-300 hover:opacity-90"
-                  style={{
-                    filter: selectedMuscle === 'Core' ? `url(#neon-glow)` : 'none',
-                  }}
-                />
+              {/* FRENTE VIEW - Organic Curved Paths */}
+              {activeSide === 'frente' && (
+                <>
+                  {/* Chest (Pecho Left & Right) */}
+                  <g onClick={() => setSelectedMuscle('Chest')} className="cursor-pointer group">
+                    <path
+                      d="M 64,48 C 54,48 50,56 50,68 C 50,78 64,81 79,81 C 79,66 79,52 64,48 Z"
+                      fill={getMuscleFillColor('Chest')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Chest' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 96,48 C 106,48 110,56 110,68 C 110,78 96,81 81,81 C 81,66 81,52 96,48 Z"
+                      fill={getMuscleFillColor('Chest')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Chest' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
 
-                {/* Shoulders (Hombros Left & Right front) */}
-                <g onClick={() => setSelectedMuscle('Shoulders')} className="cursor-pointer group">
-                  {/* Left shoulder */}
+                  {/* Core (Abdominales / Abs Matrix) */}
                   <path
-                    d="M 47,48 C 38,52 36,66 44,72 C 48,70 50,60 50,48 Z"
-                    fill={getMuscleFillColor('Shoulders')}
+                    d="M 68,84 C 65,108 67,136 70,146 C 74,146 86,146 90,146 C 93,136 95,108 92,84 Z"
+                    fill={getMuscleFillColor('Core')}
                     stroke="#070a13"
                     strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
+                    onClick={() => setSelectedMuscle('Core')}
+                    className="cursor-pointer transition-all duration-300 hover:opacity-90"
                     style={{
-                      filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
+                      filter: selectedMuscle === 'Core' ? `url(#neon-glow)` : 'none',
                     }}
                   />
-                  {/* Right shoulder */}
-                  <path
-                    d="M 113,48 C 122,52 124,66 116,72 C 112,70 110,60 110,48 Z"
-                    fill={getMuscleFillColor('Shoulders')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
 
-                {/* Arms (Brazos / Biceps - Frente) */}
-                <g onClick={() => setSelectedMuscle('Arms')} className="cursor-pointer group">
-                  {/* Left Arm */}
-                  <path
-                    d="M 33,68 C 24,78 26,108 34,124 C 38,124 43,112 43,84 Z"
-                    fill={getMuscleFillColor('Arms')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                  {/* Right Arm */}
-                  <path
-                    d="M 127,68 C 136,78 134,108 126,124 C 122,124 117,112 117,84 Z"
-                    fill={getMuscleFillColor('Arms')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
+                  {/* Shoulders (Hombros Left & Right front) */}
+                  <g onClick={() => setSelectedMuscle('Shoulders')} className="cursor-pointer group">
+                    <path
+                      d="M 47,48 C 38,52 36,66 44,72 C 48,70 50,60 50,48 Z"
+                      fill={getMuscleFillColor('Shoulders')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 113,48 C 122,52 124,66 116,72 C 112,70 110,60 110,48 Z"
+                      fill={getMuscleFillColor('Shoulders')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
 
-                {/* Legs (Piernas / Quads - Frente) */}
-                <g onClick={() => setSelectedMuscle('Legs')} className="cursor-pointer group">
-                  {/* Left Quad */}
-                  <path
-                    d="M 52,148 C 42,168 44,208 55,236 C 62,236 67,218 70,178 Z"
-                    fill={getMuscleFillColor('Legs')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                  {/* Right Quad */}
-                  <path
-                    d="M 108,148 C 118,168 116,208 105,236 C 98,236 93,218 90,178 Z"
-                    fill={getMuscleFillColor('Legs')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
-              </>
-            )}
+                  {/* Arms (Brazos / Biceps - Frente) */}
+                  <g onClick={() => setSelectedMuscle('Arms')} className="cursor-pointer group">
+                    <path
+                      d="M 33,68 C 24,78 26,108 34,124 C 38,124 43,112 43,84 Z"
+                      fill={getMuscleFillColor('Arms')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 127,68 C 136,78 134,108 126,124 C 122,124 117,112 117,84 Z"
+                      fill={getMuscleFillColor('Arms')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
 
-            {/* ESPALDA VIEW - Organic Curved Paths */}
-            {activeSide === 'espalda' && (
-              <>
-                {/* Back (Dorsales / Trapecios / Lumbar V-Taper) */}
-                <path
-                  d="M 50,48 C 50,48 110,48 110,48 C 110,64 102,112 80,132 C 58,112 50,64 50,48 Z"
-                  fill={getMuscleFillColor('Back')}
-                  stroke="#070a13"
-                  strokeWidth="2.5"
-                  onClick={() => setSelectedMuscle('Back')}
-                  className="cursor-pointer transition-all duration-300 hover:opacity-90"
-                  style={{
-                    filter: selectedMuscle === 'Back' ? `url(#neon-glow)` : 'none',
-                  }}
-                />
+                  {/* Legs (Piernas / Quads - Frente) */}
+                  <g onClick={() => setSelectedMuscle('Legs')} className="cursor-pointer group">
+                    <path
+                      d="M 52,148 C 42,168 44,208 55,236 C 62,236 67,218 70,178 Z"
+                      fill={getMuscleFillColor('Legs')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 108,148 C 118,168 116,208 105,236 C 98,236 93,218 90,178 Z"
+                      fill={getMuscleFillColor('Legs')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
+                </>
+              )}
 
-                {/* Shoulders (Hombros - Espalda) */}
-                <g onClick={() => setSelectedMuscle('Shoulders')} className="cursor-pointer group">
-                  {/* Left Shoulder */}
+              {/* ESPALDA VIEW - Organic Curved Paths */}
+              {activeSide === 'espalda' && (
+                <>
+                  {/* Back (Dorsales / Trapecios / Lumbar V-Taper) */}
                   <path
-                    d="M 47,48 C 38,52 36,66 44,72 C 48,70 50,60 50,48 Z"
-                    fill={getMuscleFillColor('Shoulders')}
+                    d="M 50,48 C 50,48 110,48 110,48 C 110,64 102,112 80,132 C 58,112 50,64 50,48 Z"
+                    fill={getMuscleFillColor('Back')}
                     stroke="#070a13"
                     strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
+                    onClick={() => setSelectedMuscle('Back')}
+                    className="cursor-pointer transition-all duration-300 hover:opacity-90"
                     style={{
-                      filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
+                      filter: selectedMuscle === 'Back' ? `url(#neon-glow)` : 'none',
                     }}
                   />
-                  {/* Right Shoulder */}
-                  <path
-                    d="M 113,48 C 122,52 124,66 116,72 C 112,70 110,60 110,48 Z"
-                    fill={getMuscleFillColor('Shoulders')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
 
-                {/* Arms (Triceps / Brazos - Espalda) */}
-                <g onClick={() => setSelectedMuscle('Arms')} className="cursor-pointer group">
-                  {/* Left Arm */}
-                  <path
-                    d="M 33,68 C 24,78 26,108 34,124 C 38,124 43,112 43,84 Z"
-                    fill={getMuscleFillColor('Arms')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                  {/* Right Arm */}
-                  <path
-                    d="M 127,68 C 136,78 134,108 126,124 C 122,124 117,112 117,84 Z"
-                    fill={getMuscleFillColor('Arms')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
+                  {/* Shoulders (Hombros - Espalda) */}
+                  <g onClick={() => setSelectedMuscle('Shoulders')} className="cursor-pointer group">
+                    <path
+                      d="M 47,48 C 38,52 36,66 44,72 C 48,70 50,60 50,48 Z"
+                      fill={getMuscleFillColor('Shoulders')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 113,48 C 122,52 124,66 116,72 C 112,70 110,60 110,48 Z"
+                      fill={getMuscleFillColor('Shoulders')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Shoulders' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
 
-                {/* Legs (Femorales / Piernas - Espalda) */}
-                <g onClick={() => setSelectedMuscle('Legs')} className="cursor-pointer group">
-                  {/* Left Leg */}
-                  <path
-                    d="M 52,148 C 42,168 44,208 55,236 C 62,236 67,218 70,178 Z"
-                    fill={getMuscleFillColor('Legs')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                  {/* Right Leg */}
-                  <path
-                    d="M 108,148 C 118,168 116,208 105,236 C 98,236 93,218 90,178 Z"
-                    fill={getMuscleFillColor('Legs')}
-                    stroke="#070a13"
-                    strokeWidth="2.5"
-                    className="transition-all duration-300 hover:opacity-90"
-                    style={{
-                      filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
-                    }}
-                  />
-                </g>
-              </>
-            )}
-          </svg>
+                  {/* Arms (Triceps / Brazos - Espalda) */}
+                  <g onClick={() => setSelectedMuscle('Arms')} className="cursor-pointer group">
+                    <path
+                      d="M 33,68 C 24,78 26,108 34,124 C 38,124 43,112 43,84 Z"
+                      fill={getMuscleFillColor('Arms')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 127,68 C 136,78 134,108 126,124 C 122,124 117,112 117,84 Z"
+                      fill={getMuscleFillColor('Arms')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Arms' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
 
-          {/* Holographic scanning overlay ring */}
-          <div className="absolute inset-0 border border-emerald-500/10 rounded-[34px] pointer-events-none" />
-          <span className="absolute bottom-3 text-[9px] font-black tracking-widest text-slate-500 uppercase">
-            Selecciona un Músculo
-          </span>
+                  {/* Legs (Femorales / Piernas - Espalda) */}
+                  <g onClick={() => setSelectedMuscle('Legs')} className="cursor-pointer group">
+                    <path
+                      d="M 52,148 C 42,168 44,208 55,236 C 62,236 67,218 70,178 Z"
+                      fill={getMuscleFillColor('Legs')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                    <path
+                      d="M 108,148 C 118,168 116,208 105,236 C 98,236 93,218 90,178 Z"
+                      fill={getMuscleFillColor('Legs')}
+                      stroke="#070a13"
+                      strokeWidth="2.5"
+                      className="transition-all duration-300 hover:opacity-90"
+                      style={{
+                        filter: selectedMuscle === 'Legs' ? `url(#neon-glow)` : 'none',
+                      }}
+                    />
+                  </g>
+                </>
+              )}
+            </svg>
+          </div>
+
+        </div>
+
+        {/* METALLIC 3D OVERALL SHIELD BADGE (Centered and positioned directly beneath portal as in 1.webp) */}
+        <div className={`bg-gradient-to-r ${overallRank.style} border-2 px-5 py-2.5 rounded-2xl shadow-clay-badge flex items-center space-x-3 mx-auto w-fit z-20`}>
+          <span className="text-sm filter drop-shadow">{overallRank.emoji}</span>
+          <div className="text-left leading-none">
+            <span className="text-[8px] uppercase tracking-widest font-black text-slate-400 block mb-0.5">Overall Rank</span>
+            <span className="text-xs font-black tracking-wide uppercase">{overallRank.text}</span>
+          </div>
         </div>
       </div>
 
-      {/* MOBILE-FIRST SLIDING BOTTOM SHEET (Slides up from the bottom with rich physical 3D styling, z-[120]) */}
+      {/* MOBILE-FIRST SLIDING BOTTOM SHEET */}
       {selectedMuscle && selectedProgress && selectedRank && selectedFatigue && (
         <>
-          {/* Backdrop Filter Overlay dimming the background context */}
+          {/* Backdrop Overlay */}
           <div
             onClick={() => setSelectedMuscle(null)}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[115] transition-opacity duration-300"
+            className="fixed inset-0 bg-slate-950/85 backdrop-blur-xs z-[115] transition-opacity duration-300"
           />
 
-          {/* Tactical Slide-Up Bottom Sheet Card */}
+          {/* Sliding Bottom Sheet Card */}
           <div className="fixed inset-x-0 bottom-0 z-[120] bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 rounded-t-[36px] border-t-2 border-slate-800 shadow-clay-lg p-6 max-w-md mx-auto animate-fade-in relative">
 
-            {/* Tactile drag/slide visual bar handle */}
+            {/* Handle visual */}
             <div className="w-14 h-1.5 bg-slate-800 rounded-full mx-auto mb-4 cursor-pointer" onClick={() => setSelectedMuscle(null)} />
 
             {/* Bottom Sheet Header */}
@@ -522,7 +561,6 @@ export default function BodyMapViewer({ muscleProgresses, sessions }: BodyMapVie
               </div>
             </div>
 
-            {/* Tap to close hint */}
             <button
               onClick={() => setSelectedMuscle(null)}
               className="mt-6 w-full bg-slate-950 border border-slate-800 py-3.5 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-200 active:scale-95 transition-all shadow-clay-sm cursor-pointer"
