@@ -97,7 +97,6 @@ function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[Muscl
     case 'Chest':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-          {/* Stylized high-tech chest armor plating */}
           <path d="M12 2L4 5v6c0 5.5 3.5 10 8 11 4.5-1 8-5.5 8-11V5l-8-3z" />
           <path d="M12 22V10" />
           <path d="M6 9h12" />
@@ -107,7 +106,6 @@ function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[Muscl
     case 'Back':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-          {/* Stylized lats V-taper wing plates */}
           <path d="M12 3l-8 4v2c0 4 3 8 8 12 5-4 8-8 8-12V7l-8-4z" />
           <path d="M7 11h10" />
           <path d="M8 15h8" />
@@ -117,7 +115,6 @@ function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[Muscl
     case 'Legs':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-          {/* Volumetric power pillar legs */}
           <rect x="5" y="3" width="5" height="18" rx="2" />
           <rect x="14" y="3" width="5" height="18" rx="2" />
           <path d="M10 8h4" />
@@ -127,7 +124,6 @@ function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[Muscl
     case 'Shoulders':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-          {/* Dual shoulder pauldron guards */}
           <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
           <path d="M3.27 6.96L12 12.01l8.73-5.05" />
           <path d="M12 22.08V12" />
@@ -136,7 +132,6 @@ function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[Muscl
     case 'Arms':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-          {/* Mighty flexed bicep curve with fist gauntlet */}
           <path d="M15 14c.2-1 .7-1.7 1.5-2 2.2-.7 3.5-2.5 3.5-5a5 5 0 00-5-5c-1.5 0-2.8.5-4 1.5M11 12H7a4 4 0 00-4 4v4h12v-6" />
           <circle cx="14" cy="18" r="1.5" />
         </svg>
@@ -144,13 +139,18 @@ function renderMuscleIcon(muscle: MuscleGroup, theme: typeof MUSCLE_THEMES[Muscl
     case 'Core':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke={theme.iconColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-          {/* Solid 3D abdominal hexagonal block grid */}
           <path d="M12 2L2 7l10 5 10-5-10-5z" />
           <path d="M2 17l10 5 10-5" />
           <path d="M2 12l10 5 10-5" />
         </svg>
       );
   }
+}
+
+interface AchievementToast {
+  title: string;
+  message: string;
+  type: 'success' | 'info' | 'timer';
 }
 
 export default function Dashboard() {
@@ -168,6 +168,9 @@ export default function Dashboard() {
   const [isTrainingOpen, setIsTrainingOpen] = useState(false);
   const [sessionName, setSessionName] = useState('Entrenamiento Rápido');
   const [activeSets, setActiveSets] = useState<WorkoutSet[]>([]);
+
+  // State-driven 3D Achievement Toast / Banner to replace native alerts
+  const [toast, setToast] = useState<AchievementToast | null>(null);
 
   // UX Improvement 1: Store the last performed set data per exercise ID to load on selection
   const [lastSetPerExercise, setLastSetPerExercise] = useState<Record<string, { weight: number; reps: number; rpe: number }>>({
@@ -189,6 +192,21 @@ export default function Dashboard() {
 
   // State for active tabs
   const [activeTab, setActiveTab] = useState<'progress' | 'history' | 'exercises'>('progress');
+
+  // Trigger custom 3D slide-down toast notification
+  const triggerToast = (title: string, message: string, type: 'success' | 'info' | 'timer' = 'success') => {
+    setToast({ title, message, type });
+  };
+
+  // Auto-dismiss the toast after 3.5 seconds
+  useEffect(() => {
+    if (toast) {
+      const dismissTimer = setTimeout(() => {
+        setToast(null);
+      }, 3500);
+      return () => clearTimeout(dismissTimer);
+    }
+  }, [toast]);
 
   // Synchronize input loading on exercise change directly inside selection handler
   const handleExerciseChange = (exerciseId: string) => {
@@ -215,7 +233,8 @@ export default function Dashboard() {
       } else {
         setTimeout(() => {
           setIsTimerActive(false);
-          alert('⏰ ¡Tiempo de descanso completado! Listo para la siguiente serie.');
+          // Replaced native alert with elegant timer-toast
+          triggerToast('⏰ ¡Descanso Terminado!', 'Tu cuerpo se ha recuperado. ¡Listo para la siguiente serie!', 'timer');
         }, 10);
       }
     }
@@ -267,6 +286,9 @@ export default function Dashboard() {
     setTimeLeft(90);
     setIsTimerActive(true);
     setIsTimerPaused(false);
+
+    // Prompt soft feedback toast
+    triggerToast('✓ Serie Registrada', 'Se ha activado tu temporizador de descanso de 90s.', 'info');
   };
 
   // Remove a set during the current session
@@ -277,7 +299,7 @@ export default function Dashboard() {
   // Complete session & trigger dynamic tonnage-based XP progression mathematics
   const handleCompleteSession = () => {
     if (activeSets.length === 0) {
-      alert('¡Agrega al menos una serie para poder guardar el entrenamiento!');
+      triggerToast('⚠️ Error de Guardado', '¡Agrega al menos una serie para poder guardar el entrenamiento!', 'info');
       return;
     }
 
@@ -347,11 +369,40 @@ export default function Dashboard() {
     setIsTrainingOpen(false);
     setIsTimerActive(false); // Turn off rest timer when workout is closed
 
-    alert(`¡Entrenamiento registrado con éxito!\nFórmula Tonelaje + RPE calculó un total de +${totalGainedXp} XP ganados.`);
+    // Replaced invasive alert() with dynamic 3D RPG achievement toast showing calculated XP
+    triggerToast('🏆 ¡Entrenamiento Completado!', `Fórmula Tonelaje + RPE calculó un total de +${totalGainedXp} EXP.`, 'success');
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-36 relative overflow-hidden">
+
+      {/* ANIMATED 3D ACHIEVEMENT TOAST BANNER (Top floating, dismisses automatically, z-[110]) */}
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[110] w-[90%] max-w-sm pointer-events-none animate-bounce">
+          <div className={`p-4.5 rounded-2.5xl border shadow-clay-lg flex items-start space-x-3.5 pointer-events-auto bg-gradient-to-b ${
+            toast.type === 'success'
+              ? 'from-emerald-900/95 via-slate-900 to-slate-950 border-emerald-500/50'
+              : toast.type === 'timer'
+              ? 'from-amber-900/95 via-slate-900 to-slate-950 border-amber-500/50'
+              : 'from-blue-900/95 via-slate-900 to-slate-950 border-blue-500/50'
+          }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg border shadow-clay-sm ${
+              toast.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : toast.type === 'timer'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+            }`}>
+              {toast.type === 'success' ? '🏆' : toast.type === 'timer' ? '⏰' : '✓'}
+            </div>
+            <div className="flex-1">
+              <h5 className="font-black text-xs uppercase tracking-wide text-slate-100">{toast.title}</h5>
+              <p className="text-[11px] text-slate-300 font-semibold mt-1 leading-relaxed">{toast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 3D AMBIENT MESH GLOWS (Prevents dark flat backgrounds, simulates premium high-end RPG console) */}
       <div className="fixed -top-16 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed top-1/3 -left-36 w-96 h-96 bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
@@ -407,25 +458,27 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* FLOATING AUTOMATIC REST TIMER OVERLAY */}
+      {/* HIGH Z-INDEX FLOATING AUTOMATIC REST TIMER (Configured with z-[100] to sit perfectly on top of modal window) */}
       {isTimerActive && (
-        <div className="fixed bottom-28 right-4 z-50 animate-bounce">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-emerald-500/40 p-4 rounded-2xl shadow-clay-md flex items-center space-x-3 text-xs w-60">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center text-emerald-400 font-mono font-black border border-emerald-500/30 shadow-sunken">
+        <div className="fixed bottom-28 right-4 z-[100] animate-bounce">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-emerald-500/60 p-4 rounded-2.5xl shadow-clay-lg flex items-center space-x-3.5 text-xs w-64 relative overflow-hidden">
+            {/* Soft inner light tube gloss */}
+            <div className="absolute inset-x-0 top-0.5 h-1 bg-white/10 rounded-full blur-xs mx-4" />
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 flex items-center justify-center text-emerald-400 font-mono font-black border border-emerald-500/30 shadow-sunken">
               {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
             </div>
             <div className="flex-1">
-              <span className="font-black text-slate-200 block text-[11px] tracking-wide">Descanso de Serie</span>
+              <span className="font-black text-slate-200 block text-[11px] tracking-wide uppercase">Descanso Activo</span>
               <div className="flex space-x-2 mt-1.5">
                 <button
                   onClick={() => setIsTimerPaused(!isTimerPaused)}
-                  className="text-[10px] bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/40 text-slate-200 px-2 py-1 rounded-md font-extrabold shadow-clay-sm active:scale-95 transition-all"
+                  className="text-[10px] bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/40 text-slate-200 px-2 py-1 rounded-md font-extrabold shadow-clay-sm active:scale-95 transition-all cursor-pointer"
                 >
                   {isTimerPaused ? 'Reanudar' : 'Pausar'}
                 </button>
                 <button
                   onClick={() => setIsTimerActive(false)}
-                  className="text-[10px] bg-red-950/60 text-red-400 px-2 py-1 rounded-md font-extrabold border border-red-500/20 active:scale-95 transition-all"
+                  className="text-[10px] bg-red-950/60 text-red-400 px-2 py-1 rounded-md font-extrabold border border-red-500/20 active:scale-95 transition-all cursor-pointer"
                 >
                   Saltar
                 </button>
@@ -509,7 +562,6 @@ export default function Dashboard() {
                              progress.muscleGroup === 'Shoulders' ? 'Hombros' :
                              progress.muscleGroup === 'Arms' ? 'Brazos' : 'Core'}
                           </h4>
-                          {/* Elevated Rank Badge with Semi-Transparent border */}
                           <p className="text-[11px] text-slate-400 font-bold tracking-wide mt-0.5">{progress.rankName}</p>
                         </div>
                       </div>
@@ -527,14 +579,12 @@ export default function Dashboard() {
 
                     {/* Highly Polished 3D Cylindrical Progress Bar */}
                     <div className="mt-5 h-5.5 w-full bg-slate-950 rounded-full border border-slate-900 shadow-sunken p-[3.5px] relative overflow-hidden">
-                      {/* Glossy Tube overlay representing real curved plastic reflection */}
                       <div className="absolute inset-x-0 top-0.5 h-1.5 bg-white/10 rounded-full blur-[0.5px] z-10 pointer-events-none mx-2" />
 
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${theme.barFrom} ${theme.barTo} transition-all duration-500 relative shadow-[inset_1px_2px_2px_rgba(255,255,255,0.4)]`}
                         style={{ width: `${percentage}%` }}
                       >
-                        {/* Dynamic Neon Head Light to represent progressing heat */}
                         {percentage > 3 && (
                           <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white rounded-r-full blur-xs animate-pulse opacity-90" />
                         )}
@@ -667,7 +717,19 @@ export default function Dashboard() {
                   onChange={(e) => setSessionName(e.target.value)}
                   className="bg-slate-950 border-none text-slate-100 font-extrabold text-base px-3 py-2 rounded-xl focus:ring-2 focus:ring-emerald-500/50 w-full shadow-sunken border border-slate-800"
                 />
-                <p className="text-[10px] text-slate-400 font-bold mt-1.5 px-1">Registra tus series para ganar experiencia en tus músculos.</p>
+
+                {/* INLINE HEADER REST TIMER INDICATOR (Widget inside modal header to display countdown clearly) */}
+                {isTimerActive && (
+                  <div className="mt-2.5 flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-[10px] text-emerald-400 font-bold w-fit animate-pulse">
+                    <span>⏱️ TIEMPO DE DESCANSO: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+                    <button onClick={() => setIsTimerActive(false)} className="text-[9px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded font-black">
+                      SALTAR
+                    </button>
+                  </div>
+                )}
+                {!isTimerActive && (
+                  <p className="text-[10px] text-slate-400 font-bold mt-1.5 px-1">Registra tus series para ganar experiencia en tus músculos.</p>
+                )}
               </div>
               <button
                 onClick={() => setIsTrainingOpen(false)}
