@@ -11,6 +11,10 @@ import {
 } from '../data/mockData';
 import { calculateSetXp, addXpToMuscle, getXpRequiredForNextLevel } from '../utils/xpCalculator';
 
+// Import our new premium interactive components
+import BodyMapViewer from '../components/BodyMapViewer';
+import RanksGallery from '../components/RanksGallery';
+
 // Color definitions for Hito 3 premium claymorphism visuals (vibrant gradients, borders, and glowing rings)
 const MUSCLE_THEMES: Record<MuscleGroup, {
   bg: string;
@@ -193,6 +197,9 @@ export default function Dashboard() {
   // State for active tabs
   const [activeTab, setActiveTab] = useState<'progress' | 'history' | 'exercises'>('progress');
 
+  // Sub-tabs state inside the Progress section to avoid cluttering mobile viewport
+  const [progressViewMode, setProgressViewMode] = useState<'map' | 'cards' | 'matrix'>('map');
+
   // Trigger custom 3D slide-down toast notification
   const triggerToast = (title: string, message: string, type: 'success' | 'info' | 'timer' = 'success') => {
     setToast({ title, message, type });
@@ -233,7 +240,6 @@ export default function Dashboard() {
       } else {
         setTimeout(() => {
           setIsTimerActive(false);
-          // Replaced native alert with elegant timer-toast
           triggerToast('⏰ ¡Descanso Terminado!', 'Tu cuerpo se ha recuperado. ¡Listo para la siguiente serie!', 'timer');
         }, 10);
       }
@@ -270,7 +276,6 @@ export default function Dashboard() {
       timestamp: new Date().toISOString(),
     };
 
-    // Save as last set for this exercise to load next time
     setLastSetPerExercise((prev) => ({
       ...prev,
       [selectedExerciseId]: {
@@ -282,12 +287,11 @@ export default function Dashboard() {
 
     setActiveSets([...activeSets, newSet]);
 
-    // UX Improvement 3: Activate automatic floating overlay rest timer!
+    // Activate automatic floating overlay rest timer
     setTimeLeft(90);
     setIsTimerActive(true);
     setIsTimerPaused(false);
 
-    // Prompt soft feedback toast
     triggerToast('✓ Serie Registrada', 'Se ha activado tu temporizador de descanso de 90s.', 'info');
   };
 
@@ -316,7 +320,6 @@ export default function Dashboard() {
     activeSets.forEach((set) => {
       const exercise = INITIAL_EXERCISES.find((e) => e.id === set.exerciseId);
       if (exercise) {
-        // Calculate exact Tonnage * RPE Factor XP
         const primaryXpGained = calculateSetXp(set, true);
         const secondaryXpGained = calculateSetXp(set, false);
 
@@ -329,7 +332,6 @@ export default function Dashboard() {
 
     const totalGainedXp = Object.values(xpUpdates).reduce((sum, val) => sum + val, 0);
 
-    // Apply progressive scaling level thresholds and dynamic ranks
     const updatedProgress = muscleProgresses.map((progress) => {
       const addedXp = xpUpdates[progress.muscleGroup];
       if (addedXp === 0) return progress;
@@ -355,6 +357,7 @@ export default function Dashboard() {
       id: `s-${Date.now()}`,
       userId: user.id,
       name: sessionName,
+      // Record complete current ISO date to accurately feed recovery fatigue calculations
       date: new Date().toISOString().split('T')[0],
       sets: activeSets,
       xpGained: totalGainedXp,
@@ -367,16 +370,15 @@ export default function Dashboard() {
     setActiveSets([]);
     setSessionName('Entrenamiento Rápido');
     setIsTrainingOpen(false);
-    setIsTimerActive(false); // Turn off rest timer when workout is closed
+    setIsTimerActive(false);
 
-    // Replaced invasive alert() with dynamic 3D RPG achievement toast showing calculated XP
     triggerToast('🏆 ¡Entrenamiento Completado!', `Fórmula Tonelaje + RPE calculó un total de +${totalGainedXp} EXP.`, 'success');
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-36 relative overflow-hidden">
 
-      {/* ANIMATED 3D ACHIEVEMENT TOAST BANNER (Top floating, dismisses automatically, z-[110]) */}
+      {/* ANIMATED 3D ACHIEVEMENT TOAST BANNER (Top floating, z-[110]) */}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[110] w-[90%] max-w-sm pointer-events-none animate-bounce">
           <div className={`p-4.5 rounded-2.5xl border shadow-clay-lg flex items-start space-x-3.5 pointer-events-auto bg-gradient-to-b ${
@@ -403,7 +405,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 3D AMBIENT MESH GLOWS (Prevents dark flat backgrounds, simulates premium high-end RPG console) */}
+      {/* 3D AMBIENT MESH GLOWS */}
       <div className="fixed -top-16 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed top-1/3 -left-36 w-96 h-96 bg-indigo-500/10 rounded-full blur-[130px] pointer-events-none" />
       <div className="fixed bottom-10 -right-24 w-80 h-80 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -411,10 +413,8 @@ export default function Dashboard() {
       {/* HEADER SECTION (Elevated Character Profile Card) */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-4 shadow-clay-md">
         <div className="max-w-md mx-auto">
-          {/* RPG Player Profile Card */}
           <div className="bg-gradient-to-br from-slate-900/95 via-slate-950 to-slate-900 p-4.5 rounded-3xl border border-slate-800 shadow-clay-sm flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              {/* Elevated Ring Avatar */}
               <div className="relative">
                 <div className="w-13 h-13 rounded-full overflow-hidden border-2 border-emerald-500 ring-4 ring-emerald-500/20 shadow-neon-glow flex items-center justify-center bg-slate-950">
                   {user.avatarUrl ? (
@@ -429,7 +429,6 @@ export default function Dashboard() {
                     <span className="font-black text-xl text-emerald-400">{user.name.charAt(0)}</span>
                   )}
                 </div>
-                {/* Micro Level Indicator badge */}
                 <div className="absolute -bottom-1.5 -right-1 bg-gradient-to-b from-amber-400 to-orange-500 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full shadow-clay-badge border border-white/20">
                   LV {user.level}
                 </div>
@@ -458,11 +457,10 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* HIGH Z-INDEX FLOATING AUTOMATIC REST TIMER (Configured with z-[100] to sit perfectly on top of modal window) */}
+      {/* HIGH Z-INDEX FLOATING AUTOMATIC REST TIMER countdown (z-[100]) */}
       {isTimerActive && (
         <div className="fixed bottom-28 right-4 z-[100] animate-bounce">
           <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-emerald-500/60 p-4 rounded-2.5xl shadow-clay-lg flex items-center space-x-3.5 text-xs w-64 relative overflow-hidden">
-            {/* Soft inner light tube gloss */}
             <div className="absolute inset-x-0 top-0.5 h-1 bg-white/10 rounded-full blur-xs mx-4" />
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 flex items-center justify-center text-emerald-400 font-mono font-black border border-emerald-500/30 shadow-sunken">
               {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
@@ -491,7 +489,7 @@ export default function Dashboard() {
       {/* MAIN CONTAINER */}
       <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
 
-        {/* TABS SELECTOR (Sunken track + clay pills) */}
+        {/* TABS SELECTOR */}
         <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-900 shadow-sunken">
           <button
             onClick={() => setActiveTab('progress')}
@@ -525,81 +523,127 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* TAB 1: MUSCLE PROGRESS DASHBOARD */}
+        {/* TAB 1: PROGRESS SUB-TABS (Anatomy Map, Details, Ranks Matrix) */}
         {activeTab === 'progress' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-[11px] font-black tracking-wider text-slate-500 uppercase">Progresión de Rangos Musculares</h3>
-              <span className="text-[10px] font-black text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 shadow-clay-badge">
-                Tonnage-Based XP
-              </span>
+          <div className="space-y-6">
+
+            {/* Elegant Sub-Tab Selector */}
+            <div className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-900/80 shadow-sunken w-full">
+              <button
+                onClick={() => setProgressViewMode('map')}
+                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                  progressViewMode === 'map'
+                    ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                🗺️ MAPA ANATOMÍA
+              </button>
+              <button
+                onClick={() => setProgressViewMode('cards')}
+                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                  progressViewMode === 'cards'
+                    ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                📋 MIS TARJETAS
+              </button>
+              <button
+                onClick={() => setProgressViewMode('matrix')}
+                className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer ${
+                  progressViewMode === 'matrix'
+                    ? 'bg-slate-800 text-slate-100 shadow-clay-sm border border-slate-700/30'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                🏆 MATRIZ RANGOS
+              </button>
             </div>
 
-            {/* VOLUMETRIC HIGH-CONTRAST MUSCLE CARDS LIST */}
-            <div className="grid grid-cols-1 gap-5">
-              {muscleProgresses.map((progress) => {
-                const theme = MUSCLE_THEMES[progress.muscleGroup];
-                const percentage = Math.min(100, (progress.currentXp / progress.xpToNextLevel) * 100);
-                const primaryExercises = INITIAL_EXERCISES.filter(e => e.primaryMuscleGroup === progress.muscleGroup);
+            {/* RENDER ACTIVE VIEW SUB-MODE */}
+            {progressViewMode === 'map' && (
+              <div className="animate-fade-in">
+                <BodyMapViewer muscleProgresses={muscleProgresses} sessions={sessions} />
+              </div>
+            )}
 
-                return (
-                  <div
-                    key={progress.muscleGroup}
-                    className={`bg-gradient-to-br ${theme.bg} p-5.5 rounded-3xl border-2 ${theme.border} ${theme.accentGlow} shadow-clay-md transition-all duration-300 hover:-translate-y-1 hover:shadow-clay-lg`}
-                  >
-                    {/* Muscle Top Line (3D Plating Style) */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {/* 3D Glowing Icon Container */}
-                        <div className={`w-14 h-14 rounded-2xl ${theme.iconBg} border flex items-center justify-center shadow-clay-sm`}>
-                          {renderMuscleIcon(progress.muscleGroup, theme)}
-                        </div>
-                        <div>
-                          <h4 className="font-black text-slate-100 text-base flex items-center gap-2">
-                            {progress.muscleGroup === 'Chest' ? 'Pecho' :
-                             progress.muscleGroup === 'Back' ? 'Espalda' :
-                             progress.muscleGroup === 'Legs' ? 'Piernas' :
-                             progress.muscleGroup === 'Shoulders' ? 'Hombros' :
-                             progress.muscleGroup === 'Arms' ? 'Brazos' : 'Core'}
-                          </h4>
-                          <p className="text-[11px] text-slate-400 font-bold tracking-wide mt-0.5">{progress.rankName}</p>
-                        </div>
-                      </div>
+            {progressViewMode === 'matrix' && (
+              <div className="animate-fade-in">
+                <RanksGallery muscleProgresses={muscleProgresses} />
+              </div>
+            )}
 
-                      {/* Level and XP Raised Pill Badges */}
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="bg-gradient-to-b from-slate-800 to-slate-950 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-xl border border-emerald-500/30 shadow-clay-badge">
-                          NIV. {progress.level}
-                        </span>
-                        <span className="text-[10px] font-mono font-black text-slate-400">
-                          {progress.currentXp} <span className="text-[9px] text-slate-600">/ {progress.xpToNextLevel} XP</span>
-                        </span>
-                      </div>
-                    </div>
+            {progressViewMode === 'cards' && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-[11px] font-black tracking-wider text-slate-500 uppercase">Tarjetas de Maestría</h3>
+                  <span className="text-[10px] font-black text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20 shadow-clay-badge">
+                    Maestría RPG
+                  </span>
+                </div>
 
-                    {/* Highly Polished 3D Cylindrical Progress Bar */}
-                    <div className="mt-5 h-5.5 w-full bg-slate-950 rounded-full border border-slate-900 shadow-sunken p-[3.5px] relative overflow-hidden">
-                      <div className="absolute inset-x-0 top-0.5 h-1.5 bg-white/10 rounded-full blur-[0.5px] z-10 pointer-events-none mx-2" />
+                <div className="grid grid-cols-1 gap-5">
+                  {muscleProgresses.map((progress) => {
+                    const theme = MUSCLE_THEMES[progress.muscleGroup];
+                    const percentage = Math.min(100, (progress.currentXp / progress.xpToNextLevel) * 100);
+                    const primaryExercises = INITIAL_EXERCISES.filter(e => e.primaryMuscleGroup === progress.muscleGroup);
 
+                    return (
                       <div
-                        className={`h-full rounded-full bg-gradient-to-r ${theme.barFrom} ${theme.barTo} transition-all duration-500 relative shadow-[inset_1px_2px_2px_rgba(255,255,255,0.4)]`}
-                        style={{ width: `${percentage}%` }}
+                        key={progress.muscleGroup}
+                        className={`bg-gradient-to-br ${theme.bg} p-5.5 rounded-3xl border-2 ${theme.border} ${theme.accentGlow} shadow-clay-md transition-all duration-300 hover:-translate-y-1 hover:shadow-clay-lg`}
                       >
-                        {percentage > 3 && (
-                          <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white rounded-r-full blur-xs animate-pulse opacity-90" />
-                        )}
-                      </div>
-                    </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-14 h-14 rounded-2xl ${theme.iconBg} border flex items-center justify-center shadow-clay-sm`}>
+                              {renderMuscleIcon(progress.muscleGroup, theme)}
+                            </div>
+                            <div>
+                              <h4 className="font-black text-slate-100 text-base flex items-center gap-2">
+                                {progress.muscleGroup === 'Chest' ? 'Pecho' :
+                                 progress.muscleGroup === 'Back' ? 'Espalda' :
+                                 progress.muscleGroup === 'Legs' ? 'Piernas' :
+                                 progress.muscleGroup === 'Shoulders' ? 'Hombros' :
+                                 progress.muscleGroup === 'Arms' ? 'Brazos' : 'Core'}
+                              </h4>
+                              <p className="text-[11px] text-slate-400 font-bold tracking-wide mt-0.5">{progress.rankName}</p>
+                            </div>
+                          </div>
 
-                    {/* Action exercise metadata */}
-                    <div className="mt-4.5 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-900/40">
-                      <span className="font-semibold">{primaryExercises.length} Ejercicios disponibles</span>
-                      <span className={`font-black uppercase tracking-widest text-[9px] ${theme.accentText}`}>Grupo Primario</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="bg-gradient-to-b from-slate-800 to-slate-950 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-xl border border-emerald-500/30 shadow-clay-badge">
+                              NIV. {progress.level}
+                            </span>
+                            <span className="text-[10px] font-mono font-black text-slate-400">
+                              {progress.currentXp} <span className="text-[9px] text-slate-600">/ {progress.xpToNextLevel} XP</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 h-5.5 w-full bg-slate-950 rounded-full border border-slate-900 shadow-sunken p-[3.5px] relative overflow-hidden">
+                          <div className="absolute inset-x-0 top-0.5 h-1 bg-white/10 rounded-full blur-[0.5px] z-10 pointer-events-none mx-2" />
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r ${theme.barFrom} ${theme.barTo} transition-all duration-500 relative shadow-[inset_1px_2px_2px_rgba(255,255,255,0.4)]`}
+                            style={{ width: `${percentage}%` }}
+                          >
+                            {percentage > 3 && (
+                              <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white rounded-r-full blur-xs animate-pulse opacity-90" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-4.5 flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-900/40">
+                          <span className="font-semibold">{primaryExercises.length} Ejercicios disponibles</span>
+                          <span className={`font-black uppercase tracking-widest text-[9px] ${theme.accentText}`}>Grupo Primario</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
@@ -625,7 +669,6 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Sets summary */}
                     <div className="space-y-2 border-t border-slate-900/80 pt-4">
                       {session.sets.map((set, idx) => {
                         const exercise = INITIAL_EXERCISES.find(e => e.id === set.exerciseId);
@@ -718,11 +761,11 @@ export default function Dashboard() {
                   className="bg-slate-950 border-none text-slate-100 font-extrabold text-base px-3 py-2 rounded-xl focus:ring-2 focus:ring-emerald-500/50 w-full shadow-sunken border border-slate-800"
                 />
 
-                {/* INLINE HEADER REST TIMER INDICATOR (Widget inside modal header to display countdown clearly) */}
+                {/* INLINE HEADER REST TIMER INDICATOR */}
                 {isTimerActive && (
                   <div className="mt-2.5 flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-[10px] text-emerald-400 font-bold w-fit animate-pulse">
                     <span>⏱️ TIEMPO DE DESCANSO: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
-                    <button onClick={() => setIsTimerActive(false)} className="text-[9px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded font-black">
+                    <button onClick={() => setIsTimerActive(false)} className="text-[9px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded font-black cursor-pointer">
                       SALTAR
                     </button>
                   </div>
@@ -746,7 +789,7 @@ export default function Dashboard() {
               <div className="p-4.5 rounded-2.5xl bg-slate-950 border border-slate-900 shadow-sunken space-y-5">
                 <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase block">Agregar Serie</span>
 
-                {/* Select Exercise (Tactile drop-down) */}
+                {/* Select Exercise */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] text-slate-500 font-black px-1 uppercase tracking-wide">Ejercicio</label>
                   <select
